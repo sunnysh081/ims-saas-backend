@@ -1,0 +1,27 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: ims-saas-postgres
+    restart: unless-stopped
+    ports:
+      - '${DB_PORT:-5433}:5432'
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-ims}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-ims}
+      POSTGRES_DB: ${DB_NAME:-ims_saas}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USERNAME:-ims} -d ${DB_NAME:-ims_saas}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - ims-saas
+
+volumes:
+  postgres_data:
+
+networks:
+  ims-saas:
+    driver: bridge

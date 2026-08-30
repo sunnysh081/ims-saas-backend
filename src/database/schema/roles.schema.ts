@@ -8,6 +8,8 @@ import {
     varchar,
 } from 'drizzle-orm/pg-core';
 
+
+import { sql } from "drizzle-orm"
 import {
     roleScopeEnum,
 } from './enums';
@@ -92,12 +94,39 @@ export const roles = pgTable(
     },
 
     (table) => [
+        /**
+      * Institute roles:
+      *
+      * institute A + teacher
+      * institute B + teacher
+      *
+      * are both allowed.
+      */
         uniqueIndex(
             'roles_institute_slug_unique',
-        ).on(
-            table.instituteId,
-            table.slug,
-        ),
+        )
+            .on(
+                table.instituteId,
+                table.slug,
+            )
+            .where(
+                sql`${table.instituteId} IS NOT NULL`,
+            ),
+
+        /**
+         * Global roles:
+         *
+         * NULL + super_admin
+         *
+         * can exist only once.
+         */
+        uniqueIndex(
+            'roles_global_slug_unique',
+        )
+            .on(table.slug)
+            .where(
+                sql`${table.instituteId} IS NULL`,
+            ),
 
         index(
             'roles_institute_id_idx',

@@ -5,15 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1788098378781,
-      "tag": "0000_foamy_zodiak",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1788098651591,
-      "tag": "0001_curious_the_phantom",
+      "when": 1788106130812,
+      "tag": "0000_overconfident_tattoo",
       "breakpoints": true
     }
   ]

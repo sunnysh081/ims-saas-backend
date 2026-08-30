@@ -10,3 +10,4 @@ export * from './role-permissions.schema';
 
 export * from "./institute-users.schema"
 export * from "./institutes.schema"
+export * from './auth-sessions.schema';

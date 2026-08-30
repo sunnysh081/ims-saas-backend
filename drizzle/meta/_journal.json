@@ -8,6 +8,13 @@
       "when": 1788106130812,
       "tag": "0000_overconfident_tattoo",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788108276740,
+      "tag": "0001_new_shriek",
+      "breakpoints": true
     }
   ]
 }

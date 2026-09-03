@@ -1,26 +1,21 @@
-import {
-    AsyncLocalStorage,
-} from 'node:async_hooks';
+import { AsyncLocalStorage } from 'node:async_hooks';
 
 export interface RequestContext {
-    requestId: string;
+  requestId: string;
 
-    method?: string;
+  method?: string;
 
-    path?: string;
+  path?: string;
 
-    startTime?: number;
+  startTime?: number;
 }
 
-export const requestContext =
-    new AsyncLocalStorage<RequestContext>();
+export const requestContext = new AsyncLocalStorage<RequestContext>();
 
-export function getRequestContext():
-    RequestContext | undefined {
-    return requestContext.getStore();
+export function getRequestContext(): RequestContext | undefined {
+  return requestContext.getStore();
 }
 
-export function getRequestId():
-    string | undefined {
-    return getRequestContext()?.requestId;
+export function getRequestId(): string | undefined {
+  return getRequestContext()?.requestId;
 }

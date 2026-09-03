@@ -1,8 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  HealthCheckResult,
-  HealthCheckService,
-} from '@nestjs/terminus';
+import { HealthCheckResult, HealthCheckService } from '@nestjs/terminus';
 import { sql } from 'drizzle-orm';
 
 import { DatabaseService } from './database/database.service';
@@ -11,8 +8,8 @@ import { DatabaseService } from './database/database.service';
 export class AppService {
   constructor(
     private readonly healthCheckService: HealthCheckService,
-    private readonly databaseService: DatabaseService
-  ) { }
+    private readonly databaseService: DatabaseService,
+  ) {}
 
   async check(): Promise<HealthCheckResult> {
     return this.healthCheckService.check([

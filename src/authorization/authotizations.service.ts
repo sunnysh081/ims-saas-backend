@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 
 import { JwtService } from '@nestjs/jwt';
 
-import { and, eq, inArray, isNull } from 'drizzle-orm';
+import { and, eq, inArray, isNull, or } from 'drizzle-orm';
 
 import * as argon2 from 'argon2';
 import { randomBytes } from 'crypto';
@@ -66,7 +66,10 @@ export class AuthorizationService {
 
           eq(instituteUsers.instituteId, instituteId),
 
-          eq(roles.instituteId, instituteId),
+          or(
+            eq(roles.instituteId, instituteId),
+            and(isNull(roles.instituteId), eq(roles.scope, 'institute')),
+          ),
 
           eq(roles.isActive, true),
 

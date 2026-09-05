@@ -11,7 +11,7 @@ import { DatabaseService } from '../database/database.service';
 
 import { permissions, rolePermissions, roles } from '../database/schema';
 
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, isNull, or } from 'drizzle-orm';
 
 import { CreateRoleDto } from './dto/create-role.dto';
 
@@ -90,14 +90,32 @@ export class RolesService {
     return this.database.db
       .select()
       .from(roles)
-      .where(and(eq(roles.instituteId, instituteId), eq(roles.isActive, true)));
+      .where(
+        and(
+          eq(roles.isActive, true),
+          isNull(roles.deletedAt),
+          or(
+            eq(roles.instituteId, instituteId),
+            and(isNull(roles.instituteId), eq(roles.scope, 'institute')),
+          ),
+        ),
+      );
   }
 
   async findOne(instituteId: string, roleId: string) {
     const [role] = await this.database.db
       .select()
       .from(roles)
-      .where(and(eq(roles.id, roleId), eq(roles.instituteId, instituteId)))
+      .where(
+        and(
+          eq(roles.id, roleId),
+          isNull(roles.deletedAt),
+          or(
+            eq(roles.instituteId, instituteId),
+            and(isNull(roles.instituteId), eq(roles.scope, 'institute')),
+          ),
+        ),
+      )
       .limit(1);
 
     if (!role) {

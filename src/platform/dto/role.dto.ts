@@ -1,14 +1,12 @@
 import {
   IsArray,
   IsBoolean,
-  IsIn,
   IsOptional,
   IsString,
   IsUUID,
   Matches,
   MaxLength,
   MinLength,
-  ValidateIf,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 
@@ -43,13 +41,6 @@ export class CreatePlatformRoleDto {
   @MaxLength(500)
   @Matches(DESCRIPTION_PATTERN, { message: DESCRIPTION_MESSAGE })
   description?: string;
-
-  @IsIn(['platform', 'institute'])
-  scope!: 'platform' | 'institute';
-
-  @ValidateIf((dto: CreatePlatformRoleDto) => dto.scope === 'institute')
-  @IsUUID('4')
-  instituteId?: string;
 
   @IsArray()
   @IsUUID('4', { each: true })

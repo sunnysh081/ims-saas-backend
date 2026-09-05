@@ -56,6 +56,9 @@ export class CreateUserDto {
   @ArrayNotEmpty()
   @IsUUID('4', { each: true })
   roleIds!: string[];
+
+  @IsUUID('4')
+  instituteId!: string;
 }
 
 export class UpdateUserDto {
@@ -101,4 +104,8 @@ export class UpdateUserDto {
   @ArrayNotEmpty()
   @IsUUID('4', { each: true })
   roleIds?: string[];
+
+  @IsOptional()
+  @IsUUID('4')
+  instituteId?: string;
 }

@@ -70,7 +70,7 @@ export class AccessService {
   }
 
   async listRoles() {
-    return this.database.db
+    const rows = await this.database.db
       .select({
         id: roles.id,
         name: roles.name,
@@ -88,6 +88,8 @@ export class AccessService {
       .leftJoin(institutes, eq(institutes.id, roles.instituteId))
       .where(isNull(roles.deletedAt))
       .orderBy(desc(roles.createdAt));
+
+    return rows.map((role) => this.withVisibility(role));
   }
 
   async getRole(id: string) {
@@ -121,34 +123,20 @@ export class AccessService {
       .from(rolePermissions)
       .where(eq(rolePermissions.roleId, id));
 
-    return {
+    return this.withVisibility({
       ...role,
       permissionIds: assigned.map((row) => row.permissionId),
-    };
+    });
   }
 
   async createRole(dto: CreatePlatformRoleDto) {
     const slug = dto.slug.toLowerCase();
-    const instituteId: string | null =
-      dto.scope === 'institute' ? (dto.instituteId ?? null) : null;
 
-    if (dto.scope === 'institute' && !instituteId) {
-      throw new BadRequestException('Institute is required for institute roles');
+    if (slug === 'super_admin') {
+      throw new BadRequestException('super_admin is reserved');
     }
 
-    if (instituteId) {
-      const [institute] = await this.database.db
-        .select({ id: institutes.id })
-        .from(institutes)
-        .where(and(eq(institutes.id, instituteId), isNull(institutes.deletedAt)))
-        .limit(1);
-
-      if (!institute) {
-        throw new BadRequestException('Institute not found');
-      }
-    }
-
-    const existing = await this.findRoleBySlug(slug, instituteId);
+    const existing = await this.findRoleBySlug(slug, null);
 
     if (existing) {
       throw new ConflictException('Role slug already exists');
@@ -163,8 +151,8 @@ export class AccessService {
           name: dto.name,
           slug,
           description: dto.description,
-          scope: dto.scope,
-          instituteId,
+          scope: 'institute',
+          instituteId: null,
           isSystem: false,
           isActive: true,
         })
@@ -200,6 +188,10 @@ export class AccessService {
 
     if (current.isSystem && dto.slug && dto.slug !== current.slug) {
       throw new BadRequestException('System role slug cannot be changed');
+    }
+
+    if (dto.slug?.toLowerCase() === 'super_admin' && current.slug !== 'super_admin') {
+      throw new BadRequestException('super_admin is reserved');
     }
 
     if (dto.slug) {
@@ -248,6 +240,13 @@ export class AccessService {
     });
 
     return this.getRole(id);
+  }
+
+  private withVisibility<T extends { instituteId: string | null }>(role: T) {
+    return {
+      ...role,
+      visibility: role.instituteId ? ('institute' as const) : ('global' as const),
+    };
   }
 
   private async findRoleBySlug(slug: string, instituteId: string | null) {

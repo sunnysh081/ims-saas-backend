@@ -31,9 +31,9 @@ export const roles = pgTable(
     scope: roleScopeEnum('scope').notNull().default('institute'),
 
     /**
-     * NULL for platform roles.
+     * NULL for global roles (super_admin and roles created by super_admin).
      *
-     * Required for institute-scoped roles.
+     * Set when an institute user creates a role for their institute.
      */
     instituteId: uuid('institute_id'),
 

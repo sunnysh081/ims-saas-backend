@@ -1,15 +1,23 @@
-import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 
 import { RequirePermissions } from '../common/auth/permissions.decorator';
-
+import { CurrentInstituteId } from '../common/decorators/current-institute.decorator';
+import { InstituteGuard } from '../common/guards/institute.guard';
+import { PermissionGuard } from '../common/guards/permissions.guards';
+import { CreateRoleDto } from './dto/create-role.dto';
+import { UpdateRoleDto } from './dto/update-role.dto';
 import { RolesService } from './roles.service';
 
-import { CreateRoleDto } from './dto/create-role.dto';
-import { CurrentInstituteId } from 'src/common/decorators/current-institute.decorator';
-import { PermissionGuard } from 'src/common/guards/permissions.guards';
-
-@Controller('roles')
-@UseGuards(PermissionGuard)
+@Controller('institute/roles')
+@UseGuards(InstituteGuard, PermissionGuard)
 export class RolesController {
   constructor(private readonly rolesService: RolesService) {}
 
@@ -44,5 +52,20 @@ export class RolesController {
     roleId: string,
   ) {
     return this.rolesService.findOne(instituteId, roleId);
+  }
+
+  @Patch(':id')
+  @RequirePermissions('roles.update')
+  update(
+    @CurrentInstituteId()
+    instituteId: string,
+
+    @Param('id')
+    roleId: string,
+
+    @Body()
+    dto: UpdateRoleDto,
+  ) {
+    return this.rolesService.update(instituteId, roleId, dto);
   }
 }

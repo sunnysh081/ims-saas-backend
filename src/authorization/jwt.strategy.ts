@@ -4,6 +4,8 @@ import { ConfigService } from '@nestjs/config';
 
 import { PassportStrategy } from '@nestjs/passport';
 
+import type { Request } from 'express';
+
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
 import { AuthorizationService } from './authotizations.service';
@@ -20,10 +22,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       secretOrKey: configService.getOrThrow<string>('JWT_SECRET'),
+      passReqToCallback: true,
     });
   }
 
-  validate(payload: JwtPayload): Promise<AuthenticatedUser> {
-    return this.authorizationService.validateAccessToken(payload);
+  validate(request: Request, payload: JwtPayload): Promise<AuthenticatedUser> {
+    const header = request.headers['x-institute-id'];
+    const instituteId = Array.isArray(header) ? header[0] : header;
+
+    return this.authorizationService.validateAccessToken(payload, instituteId);
   }
 }

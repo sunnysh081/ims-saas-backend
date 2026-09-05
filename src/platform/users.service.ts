@@ -242,6 +242,85 @@ export class UsersService {
     return this.getUser(current.id);
   }
 
+  async listInstituteUsers(instituteId: string) {
+    const memberRows = await this.database.db
+      .select({
+        userId: instituteUsers.userId,
+      })
+      .from(instituteUsers)
+      .where(eq(instituteUsers.instituteId, instituteId));
+
+    const userIds = memberRows.map((row) => row.userId);
+
+    if (!userIds.length) {
+      return [];
+    }
+
+    const rows = await this.database.db
+      .select(userColumns)
+      .from(users)
+      .where(and(inArray(users.id, userIds), isNull(users.deletedAt)))
+      .orderBy(desc(users.createdAt));
+
+    const assignments = await this.roleAssignments(rows.map((row) => row.id));
+    const memberships = await this.instituteMemberships(rows.map((row) => row.id));
+
+    return rows.map((row) => this.withUserRelations(row, assignments, memberships));
+  }
+
+  async getInstituteUser(instituteId: string, id: string) {
+    const user = await this.getUser(id);
+
+    if (!user.institutes.some((institute) => institute.id === instituteId)) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user;
+  }
+
+  async createInstituteUser(
+    instituteId: string,
+    dto: {
+      email: string;
+      password: string;
+      firstName: string;
+      lastName?: string;
+      mobile?: string;
+      roleIds: string[];
+    },
+  ) {
+    return this.createUser({
+      ...dto,
+      instituteId,
+    });
+  }
+
+  async updateInstituteUser(
+    instituteId: string,
+    id: string,
+    dto: {
+      email?: string;
+      password?: string;
+      firstName?: string;
+      lastName?: string;
+      mobile?: string;
+      isActive?: boolean;
+      roleIds?: string[];
+    },
+    actorId: string,
+  ) {
+    await this.getInstituteUser(instituteId, id);
+
+    return this.updateUser(
+      id,
+      {
+        ...dto,
+        instituteId,
+      },
+      actorId,
+    );
+  }
+
   private withUserRelations(
     user: {
       id: string;

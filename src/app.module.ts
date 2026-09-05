@@ -7,6 +7,7 @@ import { TerminusModule } from '@nestjs/terminus';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 import { LoggerModule } from './common/logging/logger.module';
 import { AuthorizationModule } from './authorization/authorization.module';
+import { InstituteModule } from './institute/institute.module';
 import { PlatformModule } from './platform/platform.module';
 
 @Module({
@@ -19,6 +20,7 @@ import { PlatformModule } from './platform/platform.module';
     TerminusModule,
     AuthorizationModule,
     PlatformModule,
+    InstituteModule,
   ],
   controllers: [AppController],
   providers: [AppService],

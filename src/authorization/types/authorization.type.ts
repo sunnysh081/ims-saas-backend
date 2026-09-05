@@ -8,6 +8,9 @@ export interface AuthenticatedUser {
   id: string;
   email: string;
   sessionId: string;
+  instituteId: string | null;
+  isSuperAdmin: boolean;
+  isInstituteAdmin: boolean;
 }
 
 export interface TokenResponse {

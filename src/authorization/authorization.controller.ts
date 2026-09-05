@@ -31,7 +31,7 @@ export class AuthorizationController {
     @CurrentUser()
     user: AuthenticatedUser,
   ) {
-    return this.authorizationService.getProfile(user.id);
+    return this.authorizationService.getProfile(user.id, user.instituteId);
   }
 
   @Public()

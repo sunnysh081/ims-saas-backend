@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 
 import { ConfigService } from '@nestjs/config';
 
@@ -13,6 +17,7 @@ import { DatabaseService } from '../database/database.service';
 
 import {
   authSessions,
+  institutes,
   instituteUsers,
   permissions,
   rolePermissions,
@@ -48,6 +53,10 @@ export class AuthorizationService {
     requiredPermissions: string[],
   ): Promise<boolean> {
     if (!requiredPermissions.length) {
+      return true;
+    }
+
+    if (await this.isInstituteAdmin(userId, instituteId)) {
       return true;
     }
 
@@ -165,7 +174,7 @@ export class AuthorizationService {
       );
   }
 
-  async getProfile(userId: string) {
+  async getProfile(userId: string, instituteId?: string | null) {
     const [user] = await this.database.db
       .select({
         id: users.id,
@@ -197,15 +206,35 @@ export class AuthorizationService {
       .innerJoin(roles, eq(roles.id, userRoles.roleId))
       .where(and(eq(userRoles.userId, userId), eq(roles.isActive, true)));
 
+    const memberships = await this.listMemberships(userId);
+    const activeInstituteId =
+      instituteId && memberships.some((item) => item.id === instituteId)
+        ? instituteId
+        : (memberships[0]?.id ?? null);
+
+    const isSuperAdmin = assignedRoles.some(
+      (role) =>
+        role.slug === 'super_admin' &&
+        role.scope === 'platform' &&
+        role.instituteId === null,
+    );
+
+    const isInstituteAdmin = activeInstituteId
+      ? await this.isInstituteAdmin(userId, activeInstituteId)
+      : false;
+
     return {
       ...user,
       roles: assignedRoles,
-      isSuperAdmin: assignedRoles.some(
-        (role) =>
-          role.slug === 'super_admin' &&
-          role.scope === 'platform' &&
-          role.instituteId === null,
-      ),
+      institutes: memberships,
+      instituteId: activeInstituteId,
+      institute:
+        memberships.find((item) => item.id === activeInstituteId) ?? null,
+      permissions: activeInstituteId
+        ? await this.listPermissionSlugs(userId, activeInstituteId)
+        : [],
+      isSuperAdmin,
+      isInstituteAdmin,
     };
   }
 
@@ -230,7 +259,10 @@ export class AuthorizationService {
     return Boolean(role);
   }
 
-  async validateAccessToken(payload: JwtPayload): Promise<AuthenticatedUser> {
+  async validateAccessToken(
+    payload: JwtPayload,
+    requestedInstituteId?: string,
+  ): Promise<AuthenticatedUser> {
     if (payload.type !== 'access' || !payload.sub || !payload.sessionId) {
       throw new UnauthorizedException();
     }
@@ -256,11 +288,100 @@ export class AuthorizationService {
       throw new UnauthorizedException();
     }
 
+    const isSuperAdmin = await this.isPlatformSuperAdmin(user.id);
+    const memberships = await this.listMemberships(user.id);
+    let instituteId: string | null = null;
+
+    if (requestedInstituteId) {
+      const allowed =
+        isSuperAdmin ||
+        memberships.some((item) => item.id === requestedInstituteId);
+
+      if (!allowed) {
+        throw new ForbiddenException('Institute context is not allowed');
+      }
+
+      instituteId = requestedInstituteId;
+    } else if (!isSuperAdmin && memberships.length === 1) {
+      instituteId = memberships[0]?.id ?? null;
+    }
+
     return {
       id: user.id,
       email: user.email,
       sessionId: session.id,
+      instituteId,
+      isSuperAdmin,
+      isInstituteAdmin: instituteId
+        ? await this.isInstituteAdmin(user.id, instituteId)
+        : false,
     };
+  }
+
+  async isInstituteAdmin(userId: string, instituteId: string): Promise<boolean> {
+    const [role] = await this.database.db
+      .select({
+        id: roles.id,
+      })
+      .from(instituteUsers)
+      .innerJoin(userRoles, eq(userRoles.userId, instituteUsers.userId))
+      .innerJoin(roles, eq(roles.id, userRoles.roleId))
+      .where(
+        and(
+          eq(instituteUsers.userId, userId),
+          eq(instituteUsers.instituteId, instituteId),
+          eq(roles.slug, 'institute_admin'),
+          eq(roles.scope, 'institute'),
+          eq(roles.isActive, true),
+          or(isNull(roles.instituteId), eq(roles.instituteId, instituteId)),
+        ),
+      )
+      .limit(1);
+
+    return Boolean(role);
+  }
+
+  private async listMemberships(userId: string) {
+    return this.database.db
+      .select({
+        id: institutes.id,
+        name: institutes.name,
+        slug: institutes.slug,
+      })
+      .from(instituteUsers)
+      .innerJoin(institutes, eq(institutes.id, instituteUsers.instituteId))
+      .where(
+        and(
+          eq(instituteUsers.userId, userId),
+          isNull(institutes.deletedAt),
+          eq(institutes.isActive, true),
+        ),
+      );
+  }
+
+  private async listPermissionSlugs(userId: string, instituteId: string) {
+    const rows = await this.database.db
+      .selectDistinct({
+        slug: permissions.slug,
+      })
+      .from(instituteUsers)
+      .innerJoin(userRoles, eq(userRoles.userId, instituteUsers.userId))
+      .innerJoin(roles, eq(roles.id, userRoles.roleId))
+      .innerJoin(rolePermissions, eq(rolePermissions.roleId, roles.id))
+      .innerJoin(permissions, eq(permissions.id, rolePermissions.permissionId))
+      .where(
+        and(
+          eq(instituteUsers.userId, userId),
+          eq(instituteUsers.instituteId, instituteId),
+          or(
+            eq(roles.instituteId, instituteId),
+            and(isNull(roles.instituteId), eq(roles.scope, 'institute')),
+          ),
+          eq(roles.isActive, true),
+        ),
+      );
+
+    return rows.map((row) => row.slug);
   }
 
   private async createSession(

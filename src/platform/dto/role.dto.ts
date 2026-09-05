@@ -16,8 +16,8 @@ import {
   DESCRIPTION_PATTERN,
   NAME_MESSAGE,
   NAME_PATTERN,
-  SLUG_MESSAGE,
-  SLUG_PATTERN,
+  ROLE_SLUG_MESSAGE,
+  ROLE_SLUG_PATTERN,
 } from '../../common/validation/patterns';
 
 export class CreatePlatformRoleDto {
@@ -32,7 +32,7 @@ export class CreatePlatformRoleDto {
   @IsString()
   @MinLength(2)
   @MaxLength(100)
-  @Matches(SLUG_PATTERN, { message: SLUG_MESSAGE })
+  @Matches(ROLE_SLUG_PATTERN, { message: ROLE_SLUG_MESSAGE })
   slug!: string;
 
   @EmptyToUndefined()
@@ -61,7 +61,7 @@ export class UpdatePlatformRoleDto {
   @IsString()
   @MinLength(2)
   @MaxLength(100)
-  @Matches(SLUG_PATTERN, { message: SLUG_MESSAGE })
+  @Matches(ROLE_SLUG_PATTERN, { message: ROLE_SLUG_MESSAGE })
   slug?: string;
 
   @EmptyToUndefined()

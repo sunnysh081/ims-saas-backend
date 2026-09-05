@@ -132,8 +132,8 @@ export class AccessService {
   async createRole(dto: CreatePlatformRoleDto) {
     const slug = dto.slug.toLowerCase();
 
-    if (slug === 'super_admin') {
-      throw new BadRequestException('super_admin is reserved');
+    if (slug === 'super_admin' || slug === 'institute_admin') {
+      throw new BadRequestException(`${slug} is reserved`);
     }
 
     const existing = await this.findRoleBySlug(slug, null);
@@ -190,8 +190,13 @@ export class AccessService {
       throw new BadRequestException('System role slug cannot be changed');
     }
 
-    if (dto.slug?.toLowerCase() === 'super_admin' && current.slug !== 'super_admin') {
-      throw new BadRequestException('super_admin is reserved');
+    const nextSlug = dto.slug?.toLowerCase();
+
+    if (
+      (nextSlug === 'super_admin' || nextSlug === 'institute_admin') &&
+      current.slug !== nextSlug
+    ) {
+      throw new BadRequestException(`${nextSlug} is reserved`);
     }
 
     if (dto.slug) {

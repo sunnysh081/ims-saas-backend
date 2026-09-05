@@ -4,8 +4,14 @@ import {
   IsString,
   IsUUID,
   Length,
+  Matches,
   MaxLength,
 } from 'class-validator';
+
+import {
+  ROLE_SLUG_MESSAGE,
+  ROLE_SLUG_PATTERN,
+} from '../../common/validation/patterns';
 
 export class CreateRoleDto {
   @IsString()
@@ -14,6 +20,7 @@ export class CreateRoleDto {
 
   @IsString()
   @Length(2, 100)
+  @Matches(ROLE_SLUG_PATTERN, { message: ROLE_SLUG_MESSAGE })
   slug!: string;
 
   @IsOptional()

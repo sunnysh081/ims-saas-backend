@@ -2,6 +2,8 @@ export const NAME_PATTERN = /^[\p{L}\p{N}][\p{L}\p{N} .'\-&(),]*$/u;
 
 export const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
+export const ROLE_SLUG_PATTERN = /^[a-z0-9]+(?:[_-][a-z0-9]+)*$/;
+
 export const MOBILE_PATTERN = /^\+?[0-9][0-9\s\-()]{7,18}$/;
 
 export const ADDRESS_PATTERN = /^[\p{L}\p{N}][\p{L}\p{N} .,\-/#&']*$/u;
@@ -21,6 +23,9 @@ export const NAME_MESSAGE =
 
 export const SLUG_MESSAGE =
   'Use lowercase letters, numbers, and hyphens only';
+
+export const ROLE_SLUG_MESSAGE =
+  'Use lowercase letters, numbers, hyphens, and underscores only';
 
 export const MOBILE_MESSAGE =
   'Use digits with optional +, spaces, hyphens, or parentheses';

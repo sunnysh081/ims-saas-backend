@@ -18,6 +18,15 @@ export const DESCRIPTION_PATTERN =
 export const PASSWORD_PATTERN =
   /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d!@#$%^&*()_+\-=]{8,64}$/;
 
+export const PROGRAM_NAME_PATTERN =
+  /^(?=.*\p{L})[\p{L}\p{N} .'\-&(),]+$/u;
+
+export const PROGRAM_CODE_PATTERN =
+  /^(?=.*[A-Za-z])[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$/;
+
+export const ACCREDITATION_PATTERN =
+  /^[\p{L}\p{N}][\p{L}\p{N} ./\-&]+$/u;
+
 export const NAME_MESSAGE =
   "Use letters, numbers, spaces, and . ' - & ( ) , only";
 
@@ -42,3 +51,12 @@ export const DESCRIPTION_MESSAGE =
 
 export const PASSWORD_MESSAGE =
   'Use 8–64 characters with a letter, a number, and optional !@#$%^&*()_+-=';
+
+export const PROGRAM_NAME_MESSAGE =
+  'Must include letters. Numbers-only or symbols-only are not allowed.';
+
+export const PROGRAM_CODE_MESSAGE =
+  'Letters required. Only letters, numbers, and hyphens (e.g. BE-CS).';
+
+export const ACCREDITATION_MESSAGE =
+  "Use letters, numbers, spaces, and . / - & only";

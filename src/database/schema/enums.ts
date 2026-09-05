@@ -9,3 +9,16 @@ export const permissionActionEnum = pgEnum('permission_action', [
   'delete',
   'manage',
 ]);
+
+export const programTypeEnum = pgEnum('program_type', [
+  'degree',
+  'diploma',
+  'certificate',
+  'integrated',
+]);
+
+export const programUniversityEnum = pgEnum('program_university', [
+  'autonomous',
+  'affiliated',
+  'deemed',
+]);

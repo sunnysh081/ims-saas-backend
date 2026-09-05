@@ -15,6 +15,13 @@
       "when": 1788108276740,
       "tag": "0001_new_shriek",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788635920705,
+      "tag": "0002_nosy_vengeance",
+      "breakpoints": true
     }
   ]
 }

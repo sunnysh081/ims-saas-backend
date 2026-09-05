@@ -66,6 +66,37 @@ const CATALOG = [
       },
     ],
   },
+  {
+    name: 'Programs',
+    slug: 'programs',
+    description: 'Academic programs offered by the institute.',
+    permissions: [
+      {
+        name: 'View programs',
+        slug: 'programs.read',
+        action: 'read' as const,
+        description: 'List and view institute programs.',
+      },
+      {
+        name: 'Create programs',
+        slug: 'programs.create',
+        action: 'create' as const,
+        description: 'Add programs to the institute.',
+      },
+      {
+        name: 'Update programs',
+        slug: 'programs.update',
+        action: 'update' as const,
+        description: 'Edit institute programs.',
+      },
+      {
+        name: 'Delete programs',
+        slug: 'programs.delete',
+        action: 'delete' as const,
+        description: 'Remove institute programs.',
+      },
+    ],
+  },
 ];
 
 export async function seedPermissions(

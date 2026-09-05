@@ -7,7 +7,7 @@ import { CurrentInstituteId } from '../common/decorators/current-institute.decor
 import { InstituteGuard } from '../common/guards/institute.guard';
 import { PermissionGuard } from '../common/guards/permissions.guards';
 import { DatabaseService } from '../database/database.service';
-import { institutes, instituteUsers, roles } from '../database/schema';
+import { institutes, instituteUsers, programs, roles } from '../database/schema';
 import { AccessService } from '../platform/access.service';
 
 @Controller('institute')
@@ -61,6 +61,15 @@ export class InstituteController {
         ),
       );
 
+    const [programCount] = await this.database.db
+      .select({
+        total: count(),
+      })
+      .from(programs)
+      .where(
+        and(eq(programs.instituteId, instituteId), isNull(programs.deletedAt)),
+      );
+
     return {
       institute,
       users: {
@@ -68,6 +77,9 @@ export class InstituteController {
       },
       roles: {
         total: Number(roleCount?.total ?? 0),
+      },
+      programs: {
+        total: Number(programCount?.total ?? 0),
       },
     };
   }

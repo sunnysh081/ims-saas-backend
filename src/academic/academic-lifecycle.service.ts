@@ -21,10 +21,20 @@ import {
   students,
 } from '../database/schema';
 import type { AcademicExecutor } from './academic.types';
+import {
+  AcademicAuditService,
+  batchLink,
+  branchLink,
+  sectionLabel,
+  sectionLink,
+} from './academic-audit.service';
 
 @Injectable()
 export class AcademicLifecycleService {
-  constructor(private readonly database: DatabaseService) {}
+  constructor(
+    private readonly database: DatabaseService,
+    private readonly audit: AcademicAuditService,
+  ) {}
 
   async changeSection(
     instituteId: string,
@@ -42,10 +52,23 @@ export class AcademicLifecycleService {
       );
 
       if (enrollment.sectionId === toSectionId) {
+        if (executor) {
+          return enrollment.id;
+        }
+
         throw new BadRequestException('Student is already in this section');
       }
 
       const toSection = await this.requireSection(tx, instituteId, toSectionId);
+      const fromSnapshot = await this.audit.sectionSnapshot(
+        tx,
+        enrollment.sectionId,
+      );
+      const toSnapshot = await this.audit.sectionSnapshot(tx, toSectionId);
+      const semester = await this.audit.semesterSnapshot(
+        tx,
+        enrollment.semesterId,
+      );
 
       await this.assertCapacity(tx, toSection.id, toSection.capacity);
 
@@ -82,6 +105,37 @@ export class AcademicLifecycleService {
         enrollmentId: created.id,
         fromSectionId: enrollment.sectionId,
         toSectionId,
+        fromSectionName: fromSnapshot?.sectionName,
+        toSectionName: toSnapshot?.sectionName,
+        fromBranchName: fromSnapshot?.branchName,
+        toBranchName: toSnapshot?.branchName,
+        semesterId: enrollment.semesterId,
+        semesterLabel: semester?.semesterLabel,
+        academicYear: enrollment.academicYear,
+        reason,
+        changedBy,
+      });
+
+      await this.audit.write(tx, {
+        instituteId,
+        studentId,
+        batchId: toSnapshot?.batchId ?? fromSnapshot?.batchId,
+        action: 'SECTION_CHANGE',
+        summary: `Moved from ${sectionLabel(fromSnapshot)} to ${sectionLabel(toSnapshot)}`,
+        fromLink: sectionLink(fromSnapshot),
+        toLink: sectionLink(toSnapshot),
+        fromPayload: {
+          ...fromSnapshot,
+          semesterId: enrollment.semesterId,
+          semesterLabel: semester?.semesterLabel,
+          academicYear: enrollment.academicYear,
+        },
+        toPayload: {
+          ...toSnapshot,
+          semesterId: enrollment.semesterId,
+          semesterLabel: semester?.semesterLabel,
+          academicYear: enrollment.academicYear,
+        },
         reason,
         changedBy,
       });
@@ -180,6 +234,13 @@ export class AcademicLifecycleService {
         throw new BadRequestException('Student is already in this branch');
       }
 
+      const fromSnapshot = await this.audit.sectionSnapshot(
+        tx,
+        enrollment.sectionId,
+      );
+      const toSnapshot = await this.audit.sectionSnapshot(tx, toSectionId);
+      const semesterSnap = await this.audit.semesterSnapshot(tx, atSemesterId);
+
       await this.changeSection(
         instituteId,
         studentId,
@@ -194,7 +255,36 @@ export class AcademicLifecycleService {
         studentId,
         fromBranchId,
         toBranchId,
+        fromBranchName: fromSnapshot?.branchName,
+        toBranchName: toSnapshot?.branchName,
+        fromSectionId: enrollment.sectionId,
+        toSectionId,
+        fromSectionName: fromSnapshot?.sectionName,
+        toSectionName: toSnapshot?.sectionName,
         atSemesterId,
+        semesterLabel: semesterSnap?.semesterLabel,
+        reason,
+        changedBy,
+      });
+
+      await this.audit.write(tx, {
+        instituteId,
+        studentId,
+        batchId: toSnapshot?.batchId ?? fromSnapshot?.batchId,
+        action: 'BRANCH_CHANGE',
+        summary: `Branch change from ${fromSnapshot?.branchName ?? '—'} to ${toSnapshot?.branchName ?? '—'} (${sectionLabel(fromSnapshot)} → ${sectionLabel(toSnapshot)})`,
+        fromLink: branchLink(fromBranchId, fromSnapshot?.branchName),
+        toLink: branchLink(toBranchId, toSnapshot?.branchName),
+        fromPayload: {
+          ...fromSnapshot,
+          semesterId: atSemesterId,
+          semesterLabel: semesterSnap?.semesterLabel,
+        },
+        toPayload: {
+          ...toSnapshot,
+          semesterId: atSemesterId,
+          semesterLabel: semesterSnap?.semesterLabel,
+        },
         reason,
         changedBy,
       });
@@ -269,6 +359,30 @@ export class AcademicLifecycleService {
       );
     }
 
+    const preview = await this.database.db
+      .select({
+        enrollmentId: studentEnrollments.id,
+      })
+      .from(studentEnrollments)
+      .innerJoin(sections, eq(sections.id, studentEnrollments.sectionId))
+      .innerJoin(students, eq(students.id, studentEnrollments.studentId))
+      .where(
+        and(
+          eq(studentEnrollments.instituteId, instituteId),
+          eq(studentEnrollments.semesterId, fromSemId),
+          eq(studentEnrollments.active, true),
+          eq(sections.batchId, batchId),
+          isNull(sections.deletedAt),
+          isNull(students.deletedAt),
+        ),
+      );
+
+    if (!preview.length) {
+      throw new BadRequestException(
+        `No active enrollments in ${fromSem.label} for this batch. Enroll students first, or choose the semester they are currently in.`,
+      );
+    }
+
     return this.database.db.transaction(async (tx) => {
       const rows = await tx
         .select({
@@ -295,6 +409,8 @@ export class AcademicLifecycleService {
       let detained = 0;
 
       for (const row of rows) {
+        const snapshot = await this.audit.sectionSnapshot(tx, row.sectionId);
+
         if (row.studentStatus === 'DETAINED') {
           await tx
             .update(studentEnrollments)
@@ -303,6 +419,28 @@ export class AcademicLifecycleService {
             })
             .where(eq(studentEnrollments.id, row.enrollmentId));
           detained += 1;
+          await this.audit.write(tx, {
+            instituteId,
+            studentId: row.studentId,
+            batchId,
+            action: 'DETENTION',
+            summary: `Held in ${fromSem.label} (${sectionLabel(snapshot)})`,
+            fromLink: sectionLink(snapshot),
+            toLink: sectionLink(snapshot),
+            fromPayload: {
+              ...snapshot,
+              semesterId: fromSemId,
+              semesterLabel: fromSem.label,
+            },
+            toPayload: {
+              ...snapshot,
+              semesterId: fromSemId,
+              semesterLabel: fromSem.label,
+              status: 'DETAINED',
+            },
+            reason: notes,
+            changedBy: triggeredBy,
+          });
           continue;
         }
 
@@ -325,6 +463,28 @@ export class AcademicLifecycleService {
         });
 
         promoted += 1;
+        await this.audit.write(tx, {
+          instituteId,
+          studentId: row.studentId,
+          batchId,
+          action: 'PROMOTION',
+          summary: `Promoted from ${fromSem.label} to ${toSem.label} (${sectionLabel(snapshot)})`,
+          fromLink: batchLink(batchId, fromSem.label),
+          toLink: batchLink(batchId, toSem.label),
+          fromPayload: {
+            ...snapshot,
+            semesterId: fromSemId,
+            semesterLabel: fromSem.label,
+          },
+          toPayload: {
+            ...snapshot,
+            semesterId: toSemId,
+            semesterLabel: toSem.label,
+            academicYear,
+          },
+          reason: notes,
+          changedBy: triggeredBy,
+        });
       }
 
       const [transition] = await tx
@@ -340,6 +500,30 @@ export class AcademicLifecycleService {
         .returning({
           id: semesterTransitions.id,
         });
+
+      await this.audit.write(tx, {
+        instituteId,
+        batchId,
+        action: 'PROMOTION',
+        summary: `Promoted batch ${fromSem.label} → ${toSem.label} (${promoted} promoted, ${detained} detained)`,
+        fromLink: batchLink(batchId, fromSem.label),
+        toLink: batchLink(batchId, toSem.label),
+        fromPayload: {
+          semesterId: fromSemId,
+          semesterLabel: fromSem.label,
+        },
+        toPayload: {
+          semesterId: toSemId,
+          semesterLabel: toSem.label,
+          academicYear,
+          promoted,
+          detained,
+          total: rows.length,
+          transitionId: transition?.id,
+        },
+        reason: notes,
+        changedBy: triggeredBy,
+      });
 
       return {
         id: transition?.id,
@@ -381,6 +565,12 @@ export class AcademicLifecycleService {
       throw new ConflictException('Batch is already split by branch');
     }
 
+    const names = splits.map((split) => split.sectionName.trim());
+
+    if (new Set(names).size !== names.length) {
+      throw new BadRequestException('Each split needs a distinct section name');
+    }
+
     return this.database.db.transaction(async (tx) => {
       const createdSections: { id: string; name: string; branchId: string }[] =
         [];
@@ -410,22 +600,64 @@ export class AcademicLifecycleService {
           );
         }
 
-        const [section] = await tx
-          .insert(sections)
-          .values({
-            instituteId,
-            batchId,
-            name: split.sectionName,
-            branchId: split.branchId,
-            capacity: split.capacity,
-          })
-          .returning({
+        const [existing] = await tx
+          .select({
             id: sections.id,
             name: sections.name,
             branchId: sections.branchId,
-          });
+          })
+          .from(sections)
+          .where(
+            and(
+              eq(sections.batchId, batchId),
+              eq(sections.name, split.sectionName),
+              eq(sections.instituteId, instituteId),
+              isNull(sections.deletedAt),
+            ),
+          )
+          .limit(1);
 
-        if (!section?.branchId) {
+        let section = existing;
+
+        if (existing) {
+          await tx
+            .update(sections)
+            .set({
+              branchId: split.branchId,
+              capacity: split.capacity,
+              updatedAt: new Date(),
+            })
+            .where(eq(sections.id, existing.id));
+
+          section = {
+            id: existing.id,
+            name: existing.name,
+            branchId: split.branchId,
+          };
+        } else {
+          const [created] = await tx
+            .insert(sections)
+            .values({
+              instituteId,
+              batchId,
+              name: split.sectionName,
+              branchId: split.branchId,
+              capacity: split.capacity,
+            })
+            .returning({
+              id: sections.id,
+              name: sections.name,
+              branchId: sections.branchId,
+            });
+
+          if (!created) {
+            throw new BadRequestException('Failed to create branch section');
+          }
+
+          section = created;
+        }
+
+        if (!section.branchId) {
           throw new BadRequestException('Failed to create branch section');
         }
 
@@ -455,6 +687,33 @@ export class AcademicLifecycleService {
           updatedAt: new Date(),
         })
         .where(eq(batches.id, batchId));
+
+      await this.audit.write(tx, {
+        instituteId,
+        batchId,
+        action: 'SPLIT',
+        summary: `Split batch into ${createdSections.length} branch sections`,
+        fromLink: batchLink(batchId, 'Combined batch'),
+        toLink: createdSections[0]
+          ? sectionLink({
+              sectionId: createdSections[0].id,
+              sectionName: createdSections[0].name,
+              branchId: createdSections[0].branchId,
+              branchName: null,
+              batchId,
+            })
+          : batchLink(batchId, 'Split batch'),
+        toPayload: {
+          sections: createdSections,
+          assignments: splits.map((split) => ({
+            branchId: split.branchId,
+            sectionName: split.sectionName,
+            studentIds: split.studentIds,
+          })),
+        },
+        reason: 'Branch split',
+        changedBy,
+      });
 
       return {
         batchId,

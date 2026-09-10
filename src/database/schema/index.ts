@@ -22,3 +22,4 @@ export * from './semester-histories.schema';
 export * from './section-change-logs.schema';
 export * from './branch-change-logs.schema';
 export * from './semester-transitions.schema';
+export * from './academic-audit-logs.schema';

@@ -88,6 +88,17 @@ export class StudentsController {
     return this.studentsService.branchChangeLog(instituteId, id);
   }
 
+  @Get(':id/audit')
+  @RequirePermissions('students.read')
+  audit(
+    @CurrentInstituteId()
+    instituteId: string,
+    @Param('id')
+    id: string,
+  ) {
+    return this.studentsService.auditLog(instituteId, id);
+  }
+
   @Get(':id/current-enrollment')
   @RequirePermissions('students.read')
   currentEnrollment(

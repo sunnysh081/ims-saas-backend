@@ -7,6 +7,7 @@ import {
 
 import { and, eq, isNull } from 'drizzle-orm';
 
+import { AcademicAuditService, sectionLabel, sectionLink } from '../academic-audit.service';
 import { AppLogger } from '../../common/logging/logger.service';
 import { DatabaseService } from '../../database/database.service';
 import {
@@ -25,6 +26,7 @@ export class EnrollmentsService {
   constructor(
     private readonly database: DatabaseService,
     private readonly logger: AppLogger,
+    private readonly audit: AcademicAuditService,
   ) {}
 
   async findAll(instituteId: string, query: ListEnrollmentsQueryDto) {
@@ -65,7 +67,11 @@ export class EnrollmentsService {
       .orderBy(studentEnrollments.enrolledAt);
   }
 
-  async create(instituteId: string, dto: CreateEnrollmentDto) {
+  async create(
+    instituteId: string,
+    dto: CreateEnrollmentDto,
+    changedBy: string,
+  ) {
     const [student] = await this.database.db
       .select({
         id: students.id,
@@ -171,6 +177,32 @@ export class EnrollmentsService {
     if (!created) {
       throw new BadRequestException('Failed to enroll student');
     }
+
+    const snapshot = await this.audit.sectionSnapshot(
+      this.database.db,
+      dto.sectionId,
+    );
+    const semesterSnap = await this.audit.semesterSnapshot(
+      this.database.db,
+      dto.semesterId,
+    );
+
+    await this.audit.write(this.database.db, {
+      instituteId,
+      studentId: dto.studentId,
+      batchId: snapshot?.batchId,
+      action: 'ENROLLMENT',
+      summary: `Enrolled in ${semesterSnap?.semesterLabel ?? 'semester'} · ${sectionLabel(snapshot)}`,
+      toLink: sectionLink(snapshot),
+      toPayload: {
+        ...snapshot,
+        enrollmentId: created.id,
+        semesterId: dto.semesterId,
+        semesterLabel: semesterSnap?.semesterLabel,
+        academicYear: dto.academicYear,
+      },
+      changedBy,
+    });
 
     this.logger.info('Student enrolled', {
       operation: 'enrollments.create',

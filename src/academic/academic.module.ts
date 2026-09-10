@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { InstituteGuard } from '../common/guards/institute.guard';
 import { PermissionGuard } from '../common/guards/permissions.guards';
+import { AcademicAuditService } from './academic-audit.service';
 import { AcademicLifecycleService } from './academic-lifecycle.service';
 import { BatchesController } from './batches/batches.controller';
 import { BatchesService } from './batches/batches.service';
@@ -31,6 +32,7 @@ import { StudentsService } from './students/students.service';
     SemesterHistoryController,
   ],
   providers: [
+    AcademicAuditService,
     AcademicLifecycleService,
     BranchesService,
     BatchesService,

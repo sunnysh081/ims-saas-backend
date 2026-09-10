@@ -138,6 +138,7 @@ curl -s -X PATCH http://localhost:3000/institute/students/<id> \
   -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
   -d '{"status":"ACTIVE"}'
 curl -s http://localhost:3000/institute/students/<id>/semester-history -H "Authorization: Bearer $TOKEN"
+curl -s http://localhost:3000/institute/students/<id>/audit -H "Authorization: Bearer $TOKEN"
 curl -s http://localhost:3000/institute/students/<id>/section-change-log -H "Authorization: Bearer $TOKEN"
 curl -s http://localhost:3000/institute/students/<id>/branch-change-log -H "Authorization: Bearer $TOKEN"
 curl -s http://localhost:3000/institute/students/<id>/current-enrollment -H "Authorization: Bearer $TOKEN"

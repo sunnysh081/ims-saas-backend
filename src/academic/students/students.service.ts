@@ -6,11 +6,13 @@ import {
 } from '@nestjs/common';
 
 import { and, desc, eq, isNull, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 
 import { paginationMeta } from '../dto/pagination.dto';
 import { AppLogger } from '../../common/logging/logger.service';
 import { DatabaseService } from '../../database/database.service';
 import {
+  academicAuditLogs,
   branchChangeLogs,
   branches,
   sectionChangeLogs,
@@ -19,7 +21,9 @@ import {
   semesters,
   studentEnrollments,
   students,
+  users,
 } from '../../database/schema';
+import { branchLink, sectionLink } from '../academic-audit.service';
 import {
   CreateStudentDto,
   ListStudentsQueryDto,
@@ -256,17 +260,35 @@ export class StudentsService {
   async sectionChangeLog(instituteId: string, id: string) {
     await this.findOne(instituteId, id);
 
-    return this.database.db
+    const fromSection = alias(sections, 'from_section');
+    const toSection = alias(sections, 'to_section');
+    const fromBranch = alias(branches, 'from_branch');
+    const toBranch = alias(branches, 'to_branch');
+
+    const rows = await this.database.db
       .select({
         id: sectionChangeLogs.id,
         enrollmentId: sectionChangeLogs.enrollmentId,
         fromSectionId: sectionChangeLogs.fromSectionId,
         toSectionId: sectionChangeLogs.toSectionId,
+        fromSectionName: sql<string>`coalesce(${sectionChangeLogs.fromSectionName}, ${fromSection.name})`,
+        toSectionName: sql<string>`coalesce(${sectionChangeLogs.toSectionName}, ${toSection.name})`,
+        fromBranchName: sql<string | null>`coalesce(${sectionChangeLogs.fromBranchName}, ${fromBranch.name})`,
+        toBranchName: sql<string | null>`coalesce(${sectionChangeLogs.toBranchName}, ${toBranch.name})`,
+        semesterId: sectionChangeLogs.semesterId,
+        semesterLabel: sectionChangeLogs.semesterLabel,
+        academicYear: sectionChangeLogs.academicYear,
         reason: sectionChangeLogs.reason,
         changedAt: sectionChangeLogs.changedAt,
         changedBy: sectionChangeLogs.changedBy,
+        changedByName: sql<string>`trim(concat(${users.firstName}, ' ', coalesce(${users.lastName}, '')))`,
       })
       .from(sectionChangeLogs)
+      .leftJoin(fromSection, eq(fromSection.id, sectionChangeLogs.fromSectionId))
+      .leftJoin(toSection, eq(toSection.id, sectionChangeLogs.toSectionId))
+      .leftJoin(fromBranch, eq(fromBranch.id, fromSection.branchId))
+      .leftJoin(toBranch, eq(toBranch.id, toSection.branchId))
+      .leftJoin(users, eq(users.id, sectionChangeLogs.changedBy))
       .where(
         and(
           eq(sectionChangeLogs.instituteId, instituteId),
@@ -274,24 +296,54 @@ export class StudentsService {
         ),
       )
       .orderBy(desc(sectionChangeLogs.changedAt));
+
+    return rows.map((row) => ({
+      ...row,
+      fromLink: sectionLink({
+        sectionId: row.fromSectionId,
+        sectionName: row.fromSectionName ?? '—',
+        branchId: null,
+        branchName: row.fromBranchName,
+        batchId: '',
+      }),
+      toLink: sectionLink({
+        sectionId: row.toSectionId,
+        sectionName: row.toSectionName ?? '—',
+        branchId: null,
+        branchName: row.toBranchName,
+        batchId: '',
+      }),
+    }));
   }
 
   async branchChangeLog(instituteId: string, id: string) {
     await this.findOne(instituteId, id);
 
-    return this.database.db
+    const fromBranch = alias(branches, 'from_branch');
+    const toBranch = alias(branches, 'to_branch');
+
+    const rows = await this.database.db
       .select({
         id: branchChangeLogs.id,
         fromBranchId: branchChangeLogs.fromBranchId,
-        fromBranchName: branches.name,
         toBranchId: branchChangeLogs.toBranchId,
+        fromBranchName: sql<string>`coalesce(${branchChangeLogs.fromBranchName}, ${fromBranch.name})`,
+        toBranchName: sql<string>`coalesce(${branchChangeLogs.toBranchName}, ${toBranch.name})`,
+        fromSectionId: branchChangeLogs.fromSectionId,
+        toSectionId: branchChangeLogs.toSectionId,
+        fromSectionName: branchChangeLogs.fromSectionName,
+        toSectionName: branchChangeLogs.toSectionName,
         atSemesterId: branchChangeLogs.atSemesterId,
+        semesterLabel: branchChangeLogs.semesterLabel,
         reason: branchChangeLogs.reason,
         changedAt: branchChangeLogs.changedAt,
         changedBy: branchChangeLogs.changedBy,
+        changedByName: sql<string>`trim(concat(${users.firstName}, ' ', coalesce(${users.lastName}, '')))`,
       })
       .from(branchChangeLogs)
-      .innerJoin(branches, eq(branches.id, branchChangeLogs.fromBranchId))
+      .leftJoin(fromBranch, eq(fromBranch.id, branchChangeLogs.fromBranchId))
+      .leftJoin(toBranch, eq(toBranch.id, branchChangeLogs.toBranchId))
+      .leftJoin(users, eq(users.id, branchChangeLogs.changedBy))
       .where(
         and(
           eq(branchChangeLogs.instituteId, instituteId),
@@ -299,6 +351,56 @@ export class StudentsService {
         ),
       )
       .orderBy(desc(branchChangeLogs.changedAt));
+
+    return rows.map((row) => ({
+      ...row,
+      fromLink: row.fromSectionId
+        ? sectionLink({
+            sectionId: row.fromSectionId,
+            sectionName: row.fromSectionName ?? '—',
+            branchId: row.fromBranchId,
+            branchName: row.fromBranchName,
+            batchId: '',
+          })
+        : branchLink(row.fromBranchId, row.fromBranchName),
+      toLink: row.toSectionId
+        ? sectionLink({
+            sectionId: row.toSectionId,
+            sectionName: row.toSectionName ?? '—',
+            branchId: row.toBranchId,
+            branchName: row.toBranchName,
+            batchId: '',
+          })
+        : branchLink(row.toBranchId, row.toBranchName),
+    }));
+  }
+
+  async auditLog(instituteId: string, id: string) {
+    await this.findOne(instituteId, id);
+
+    return this.database.db
+      .select({
+        id: academicAuditLogs.id,
+        action: academicAuditLogs.action,
+        summary: academicAuditLogs.summary,
+        fromLink: academicAuditLogs.fromLink,
+        toLink: academicAuditLogs.toLink,
+        fromPayload: academicAuditLogs.fromPayload,
+        toPayload: academicAuditLogs.toPayload,
+        reason: academicAuditLogs.reason,
+        changedBy: academicAuditLogs.changedBy,
+        changedByName: academicAuditLogs.changedByName,
+        changedByEmail: academicAuditLogs.changedByEmail,
+        changedAt: academicAuditLogs.changedAt,
+      })
+      .from(academicAuditLogs)
+      .where(
+        and(
+          eq(academicAuditLogs.instituteId, instituteId),
+          eq(academicAuditLogs.studentId, id),
+        ),
+      )
+      .orderBy(desc(academicAuditLogs.changedAt));
   }
 
   async currentEnrollment(instituteId: string, id: string) {

@@ -43,3 +43,13 @@ export const resultStatusEnum = pgEnum('result_status', [
   'WITHHELD',
   'ABSENT',
 ]);
+
+export const academicAuditActionEnum = pgEnum('academic_audit_action', [
+  'ENROLLMENT',
+  'SECTION_CHANGE',
+  'BRANCH_CHANGE',
+  'PROMOTION',
+  'DETENTION',
+  'SPLIT',
+  'RESULT_SEAL',
+]);

@@ -4,10 +4,12 @@ import {
   text,
   timestamp,
   uuid,
+  varchar,
 } from 'drizzle-orm/pg-core';
 
 import { institutes } from './institutes.schema';
 import { sections } from './sections.schema';
+import { semesters } from './semesters.schema';
 import { studentEnrollments } from './student-enrollments.schema';
 import { students } from './students.schema';
 import { users } from './users.schema';
@@ -46,6 +48,22 @@ export const sectionChangeLogs = pgTable(
       .references(() => sections.id, {
         onDelete: 'restrict',
       }),
+
+    fromSectionName: varchar('from_section_name', { length: 50 }),
+
+    toSectionName: varchar('to_section_name', { length: 50 }),
+
+    fromBranchName: varchar('from_branch_name', { length: 255 }),
+
+    toBranchName: varchar('to_branch_name', { length: 255 }),
+
+    semesterId: uuid('semester_id').references(() => semesters.id, {
+      onDelete: 'set null',
+    }),
+
+    semesterLabel: varchar('semester_label', { length: 50 }),
+
+    academicYear: varchar('academic_year', { length: 9 }),
 
     reason: text('reason'),
 

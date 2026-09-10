@@ -1,7 +1,9 @@
 import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 
+import type { AuthenticatedUser } from '../../authorization/types/authorization.type';
 import { RequirePermissions } from '../../common/auth/permissions.decorator';
 import { CurrentInstituteId } from '../../common/decorators/current-institute.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { InstituteGuard } from '../../common/guards/institute.guard';
 import { PermissionGuard } from '../../common/guards/permissions.guards';
 import {
@@ -33,9 +35,11 @@ export class SemesterHistoryController {
   seal(
     @CurrentInstituteId()
     instituteId: string,
+    @CurrentUser()
+    user: AuthenticatedUser,
     @Body()
     dto: SealSemesterHistoryDto,
   ) {
-    return this.semesterHistoryService.seal(instituteId, dto);
+    return this.semesterHistoryService.seal(instituteId, dto, user.id);
   }
 }

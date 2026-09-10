@@ -103,9 +103,8 @@ export class SplitBranchDto {
   capacity!: number;
 
   @IsArray()
-  @ArrayMinSize(1)
   @IsUUID('4', { each: true })
-  studentIds!: string[];
+  studentIds: string[] = [];
 }
 
 export class SplitBranchesDto {

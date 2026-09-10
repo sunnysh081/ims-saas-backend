@@ -2,6 +2,7 @@ import { ConflictException, Injectable, NotFoundException } from '@nestjs/common
 
 import { and, eq, inArray } from 'drizzle-orm';
 
+import { AcademicAuditService } from '../academic-audit.service';
 import { AppLogger } from '../../common/logging/logger.service';
 import { DatabaseService } from '../../database/database.service';
 import {
@@ -19,6 +20,7 @@ export class SemesterHistoryService {
   constructor(
     private readonly database: DatabaseService,
     private readonly logger: AppLogger,
+    private readonly audit: AcademicAuditService,
   ) {}
 
   async findAll(instituteId: string, query: ListSemesterHistoryQueryDto) {
@@ -52,7 +54,11 @@ export class SemesterHistoryService {
       .orderBy(semesterHistories.sealedAt);
   }
 
-  async seal(instituteId: string, dto: SealSemesterHistoryDto) {
+  async seal(
+    instituteId: string,
+    dto: SealSemesterHistoryDto,
+    changedBy: string,
+  ) {
     const [semester] = await this.database.db
       .select({
         id: semesters.id,
@@ -107,6 +113,28 @@ export class SemesterHistoryService {
         id: semesterHistories.id,
         studentId: semesterHistories.studentId,
       });
+
+    const semesterSnap = await this.audit.semesterSnapshot(
+      this.database.db,
+      dto.semesterId,
+    );
+
+    for (const result of dto.results) {
+      await this.audit.write(this.database.db, {
+        instituteId,
+        studentId: result.studentId,
+        action: 'RESULT_SEAL',
+        summary: `Sealed ${semesterSnap?.semesterLabel ?? 'semester'} result: ${result.result}`,
+        toPayload: {
+          semesterId: dto.semesterId,
+          semesterLabel: semesterSnap?.semesterLabel,
+          sgpa: result.sgpa,
+          attendancePct: result.attendancePct,
+          result: result.result,
+        },
+        changedBy,
+      });
+    }
 
     this.logger.info('Semester history sealed', {
       operation: 'semester-history.seal',

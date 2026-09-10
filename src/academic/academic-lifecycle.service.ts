@@ -1,0 +1,596 @@
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+
+import { and, eq, isNull } from 'drizzle-orm';
+
+import { DatabaseService } from '../database/database.service';
+import {
+  batches,
+  branchChangeLogs,
+  branches,
+  programs,
+  sectionChangeLogs,
+  sections,
+  semesterTransitions,
+  semesters,
+  studentEnrollments,
+  students,
+} from '../database/schema';
+import type { AcademicExecutor } from './academic.types';
+
+@Injectable()
+export class AcademicLifecycleService {
+  constructor(private readonly database: DatabaseService) {}
+
+  async changeSection(
+    instituteId: string,
+    studentId: string,
+    toSectionId: string,
+    reason: string | undefined,
+    changedBy: string,
+    executor?: AcademicExecutor,
+  ) {
+    const run = async (tx: AcademicExecutor) => {
+      const enrollment = await this.requireActiveEnrollment(
+        tx,
+        instituteId,
+        studentId,
+      );
+
+      if (enrollment.sectionId === toSectionId) {
+        throw new BadRequestException('Student is already in this section');
+      }
+
+      const toSection = await this.requireSection(tx, instituteId, toSectionId);
+
+      await this.assertCapacity(tx, toSection.id, toSection.capacity);
+
+      await tx
+        .update(studentEnrollments)
+        .set({
+          active: false,
+          status: 'TRANSFERRED',
+        })
+        .where(eq(studentEnrollments.id, enrollment.id));
+
+      const [created] = await tx
+        .insert(studentEnrollments)
+        .values({
+          instituteId,
+          studentId,
+          semesterId: enrollment.semesterId,
+          sectionId: toSectionId,
+          academicYear: enrollment.academicYear,
+          status: 'ACTIVE',
+          active: true,
+        })
+        .returning({
+          id: studentEnrollments.id,
+        });
+
+      if (!created) {
+        throw new BadRequestException('Failed to create new enrollment');
+      }
+
+      await tx.insert(sectionChangeLogs).values({
+        instituteId,
+        studentId,
+        enrollmentId: created.id,
+        fromSectionId: enrollment.sectionId,
+        toSectionId,
+        reason,
+        changedBy,
+      });
+
+      return created.id;
+    };
+
+    if (executor) {
+      return run(executor);
+    }
+
+    return this.database.db.transaction((tx) => run(tx));
+  }
+
+  async changeBranch(
+    instituteId: string,
+    studentId: string,
+    toBranchId: string,
+    toSectionId: string,
+    atSemesterId: string,
+    reason: string | undefined,
+    changedBy: string,
+  ) {
+    return this.database.db.transaction(async (tx) => {
+      const [semester] = await tx
+        .select({
+          id: semesters.id,
+          number: semesters.number,
+        })
+        .from(semesters)
+        .where(
+          and(
+            eq(semesters.id, atSemesterId),
+            eq(semesters.instituteId, instituteId),
+          ),
+        )
+        .limit(1);
+
+      if (!semester) {
+        throw new NotFoundException('Semester not found');
+      }
+
+      if (semester.number <= 2) {
+        throw new BadRequestException(
+          'Branch change is allowed only after Year 1 (semester > 2)',
+        );
+      }
+
+      const enrollment = await this.requireActiveEnrollment(
+        tx,
+        instituteId,
+        studentId,
+      );
+
+      if (enrollment.semesterId !== atSemesterId) {
+        throw new BadRequestException(
+          'Branch change semester must match the active enrollment',
+        );
+      }
+
+      const toSection = await this.requireSection(tx, instituteId, toSectionId);
+
+      if (toSection.branchId !== toBranchId) {
+        throw new BadRequestException(
+          'Target section does not belong to the target branch',
+        );
+      }
+
+      const [toBranch] = await tx
+        .select({
+          id: branches.id,
+        })
+        .from(branches)
+        .where(
+          and(
+            eq(branches.id, toBranchId),
+            eq(branches.instituteId, instituteId),
+            isNull(branches.deletedAt),
+          ),
+        )
+        .limit(1);
+
+      if (!toBranch) {
+        throw new NotFoundException('Target branch not found');
+      }
+
+      const fromBranchId = enrollment.branchId;
+
+      if (!fromBranchId) {
+        throw new BadRequestException(
+          'Student has no current branch; use split-branches or assign a branch section first',
+        );
+      }
+
+      if (fromBranchId === toBranchId) {
+        throw new BadRequestException('Student is already in this branch');
+      }
+
+      await this.changeSection(
+        instituteId,
+        studentId,
+        toSectionId,
+        reason,
+        changedBy,
+        tx,
+      );
+
+      await tx.insert(branchChangeLogs).values({
+        instituteId,
+        studentId,
+        fromBranchId,
+        toBranchId,
+        atSemesterId,
+        reason,
+        changedBy,
+      });
+    });
+  }
+
+  async promoteSemester(
+    instituteId: string,
+    batchId: string,
+    fromSemId: string,
+    toSemId: string,
+    academicYear: string,
+    triggeredBy: string,
+    notes?: string,
+  ) {
+    if (fromSemId === toSemId) {
+      throw new BadRequestException('fromSemId and toSemId must differ');
+    }
+
+    const [batch] = await this.database.db
+      .select({
+        id: batches.id,
+        programId: batches.programId,
+      })
+      .from(batches)
+      .where(
+        and(
+          eq(batches.id, batchId),
+          eq(batches.instituteId, instituteId),
+          isNull(batches.deletedAt),
+        ),
+      )
+      .limit(1);
+
+    if (!batch) {
+      throw new NotFoundException('Batch not found');
+    }
+
+    const [fromSem] = await this.database.db
+      .select()
+      .from(semesters)
+      .where(
+        and(
+          eq(semesters.id, fromSemId),
+          eq(semesters.instituteId, instituteId),
+          eq(semesters.programId, batch.programId),
+        ),
+      )
+      .limit(1);
+
+    const [toSem] = await this.database.db
+      .select()
+      .from(semesters)
+      .where(
+        and(
+          eq(semesters.id, toSemId),
+          eq(semesters.instituteId, instituteId),
+          eq(semesters.programId, batch.programId),
+        ),
+      )
+      .limit(1);
+
+    if (!fromSem || !toSem) {
+      throw new NotFoundException(
+        'Semesters must belong to the same program as the batch',
+      );
+    }
+
+    if (toSem.number !== fromSem.number + 1) {
+      throw new BadRequestException(
+        'Promotion must move to the next semester in sequence',
+      );
+    }
+
+    return this.database.db.transaction(async (tx) => {
+      const rows = await tx
+        .select({
+          enrollmentId: studentEnrollments.id,
+          studentId: studentEnrollments.studentId,
+          sectionId: studentEnrollments.sectionId,
+          studentStatus: students.status,
+        })
+        .from(studentEnrollments)
+        .innerJoin(sections, eq(sections.id, studentEnrollments.sectionId))
+        .innerJoin(students, eq(students.id, studentEnrollments.studentId))
+        .where(
+          and(
+            eq(studentEnrollments.instituteId, instituteId),
+            eq(studentEnrollments.semesterId, fromSemId),
+            eq(studentEnrollments.active, true),
+            eq(sections.batchId, batchId),
+            isNull(sections.deletedAt),
+            isNull(students.deletedAt),
+          ),
+        );
+
+      let promoted = 0;
+      let detained = 0;
+
+      for (const row of rows) {
+        if (row.studentStatus === 'DETAINED') {
+          await tx
+            .update(studentEnrollments)
+            .set({
+              status: 'DETAINED',
+            })
+            .where(eq(studentEnrollments.id, row.enrollmentId));
+          detained += 1;
+          continue;
+        }
+
+        await tx
+          .update(studentEnrollments)
+          .set({
+            active: false,
+            status: 'PROMOTED',
+          })
+          .where(eq(studentEnrollments.id, row.enrollmentId));
+
+        await tx.insert(studentEnrollments).values({
+          instituteId,
+          studentId: row.studentId,
+          semesterId: toSemId,
+          sectionId: row.sectionId,
+          academicYear,
+          status: 'ACTIVE',
+          active: true,
+        });
+
+        promoted += 1;
+      }
+
+      const [transition] = await tx
+        .insert(semesterTransitions)
+        .values({
+          instituteId,
+          batchId,
+          fromSemId,
+          toSemId,
+          triggeredBy,
+          notes,
+        })
+        .returning({
+          id: semesterTransitions.id,
+        });
+
+      return {
+        id: transition?.id,
+        promoted,
+        detained,
+        total: rows.length,
+      };
+    });
+  }
+
+  async splitBranches(
+    instituteId: string,
+    batchId: string,
+    splits: {
+      branchId: string;
+      sectionName: string;
+      capacity: number;
+      studentIds: string[];
+    }[],
+    changedBy: string,
+  ) {
+    const [batch] = await this.database.db
+      .select()
+      .from(batches)
+      .where(
+        and(
+          eq(batches.id, batchId),
+          eq(batches.instituteId, instituteId),
+          isNull(batches.deletedAt),
+        ),
+      )
+      .limit(1);
+
+    if (!batch) {
+      throw new NotFoundException('Batch not found');
+    }
+
+    if (!batch.isCombined) {
+      throw new ConflictException('Batch is already split by branch');
+    }
+
+    return this.database.db.transaction(async (tx) => {
+      const createdSections: { id: string; name: string; branchId: string }[] =
+        [];
+
+      for (const split of splits) {
+        const [branch] = await tx
+          .select({
+            id: branches.id,
+          })
+          .from(branches)
+          .where(
+            and(
+              eq(branches.id, split.branchId),
+              eq(branches.instituteId, instituteId),
+              isNull(branches.deletedAt),
+            ),
+          )
+          .limit(1);
+
+        if (!branch) {
+          throw new NotFoundException(`Branch not found: ${split.branchId}`);
+        }
+
+        if (split.studentIds.length > split.capacity) {
+          throw new BadRequestException(
+            `Section ${split.sectionName} capacity is lower than assigned students`,
+          );
+        }
+
+        const [section] = await tx
+          .insert(sections)
+          .values({
+            instituteId,
+            batchId,
+            name: split.sectionName,
+            branchId: split.branchId,
+            capacity: split.capacity,
+          })
+          .returning({
+            id: sections.id,
+            name: sections.name,
+            branchId: sections.branchId,
+          });
+
+        if (!section?.branchId) {
+          throw new BadRequestException('Failed to create branch section');
+        }
+
+        for (const studentId of split.studentIds) {
+          await this.assertStudentInInstitute(tx, instituteId, studentId);
+          await this.changeSection(
+            instituteId,
+            studentId,
+            section.id,
+            'Branch split',
+            changedBy,
+            tx,
+          );
+        }
+
+        createdSections.push({
+          id: section.id,
+          name: section.name,
+          branchId: section.branchId,
+        });
+      }
+
+      await tx
+        .update(batches)
+        .set({
+          isCombined: false,
+          updatedAt: new Date(),
+        })
+        .where(eq(batches.id, batchId));
+
+      return {
+        batchId,
+        isCombined: false,
+        sections: createdSections,
+      };
+    });
+  }
+
+  async requireProgram(instituteId: string, programId: string) {
+    const [program] = await this.database.db
+      .select({
+        id: programs.id,
+        totalSemesters: programs.totalSemesters,
+      })
+      .from(programs)
+      .where(
+        and(
+          eq(programs.id, programId),
+          eq(programs.instituteId, instituteId),
+          isNull(programs.deletedAt),
+        ),
+      )
+      .limit(1);
+
+    if (!program) {
+      throw new NotFoundException('Program not found');
+    }
+
+    return program;
+  }
+
+  private async requireActiveEnrollment(
+    tx: AcademicExecutor,
+    instituteId: string,
+    studentId: string,
+  ) {
+    const [row] = await tx
+      .select({
+        id: studentEnrollments.id,
+        studentId: studentEnrollments.studentId,
+        semesterId: studentEnrollments.semesterId,
+        sectionId: studentEnrollments.sectionId,
+        academicYear: studentEnrollments.academicYear,
+        branchId: sections.branchId,
+      })
+      .from(studentEnrollments)
+      .leftJoin(sections, eq(studentEnrollments.sectionId, sections.id))
+      .where(
+        and(
+          eq(studentEnrollments.instituteId, instituteId),
+          eq(studentEnrollments.studentId, studentId),
+          eq(studentEnrollments.active, true),
+        ),
+      )
+      .limit(1);
+
+    if (!row) {
+      throw new NotFoundException('Active enrollment not found');
+    }
+
+    return row;
+  }
+
+  private async requireSection(
+    tx: AcademicExecutor,
+    instituteId: string,
+    sectionId: string,
+  ) {
+    const [section] = await tx
+      .select({
+        id: sections.id,
+        batchId: sections.batchId,
+        branchId: sections.branchId,
+        capacity: sections.capacity,
+      })
+      .from(sections)
+      .where(
+        and(
+          eq(sections.id, sectionId),
+          eq(sections.instituteId, instituteId),
+          isNull(sections.deletedAt),
+        ),
+      )
+      .limit(1);
+
+    if (!section) {
+      throw new NotFoundException('Section not found');
+    }
+
+    return section;
+  }
+
+  private async assertCapacity(
+    tx: AcademicExecutor,
+    sectionId: string,
+    capacity: number,
+  ) {
+    const occupied = await tx
+      .select({
+        id: studentEnrollments.id,
+      })
+      .from(studentEnrollments)
+      .where(
+        and(
+          eq(studentEnrollments.sectionId, sectionId),
+          eq(studentEnrollments.active, true),
+        ),
+      );
+
+    if (occupied.length >= capacity) {
+      throw new ConflictException('Target section is at capacity');
+    }
+  }
+
+  private async assertStudentInInstitute(
+    tx: AcademicExecutor,
+    instituteId: string,
+    studentId: string,
+  ) {
+    const [student] = await tx
+      .select({
+        id: students.id,
+      })
+      .from(students)
+      .where(
+        and(
+          eq(students.id, studentId),
+          eq(students.instituteId, instituteId),
+          isNull(students.deletedAt),
+        ),
+      )
+      .limit(1);
+
+    if (!student) {
+      throw new NotFoundException(`Student not found: ${studentId}`);
+    }
+  }
+}

@@ -22,3 +22,24 @@ export const programUniversityEnum = pgEnum('program_university', [
   'affiliated',
   'deemed',
 ]);
+
+export const studentStatusEnum = pgEnum('student_status', [
+  'ACTIVE',
+  'DETAINED',
+  'GRADUATED',
+  'DROPPED',
+]);
+
+export const enrollmentStatusEnum = pgEnum('enrollment_status', [
+  'ACTIVE',
+  'DETAINED',
+  'PROMOTED',
+  'TRANSFERRED',
+]);
+
+export const resultStatusEnum = pgEnum('result_status', [
+  'PASS',
+  'FAIL',
+  'WITHHELD',
+  'ABSENT',
+]);

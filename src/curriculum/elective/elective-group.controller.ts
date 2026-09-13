@@ -29,6 +29,12 @@ export class ElectiveGroupController {
     return this.electiveGroupService.create(instituteId, dto);
   }
 
+  @Get(':id')
+  @RequirePermissions('electives.read')
+  findOne(@CurrentInstituteId() instituteId: string, @Param('id') id: string) {
+    return this.electiveGroupService.findOne(instituteId, id);
+  }
+
   @Patch(':id')
   @RequirePermissions('electives.manage')
   update(@CurrentInstituteId() instituteId: string, @Param('id') id: string, @Body() dto: UpdateElectiveGroupDto) {

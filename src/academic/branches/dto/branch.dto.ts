@@ -2,6 +2,7 @@ import { Transform } from 'class-transformer';
 import {
   IsOptional,
   IsString,
+  IsUUID,
   Matches,
   MaxLength,
   MinLength,
@@ -16,6 +17,9 @@ import {
 } from '../../../common/validation/patterns';
 
 export class CreateBranchDto {
+  @IsUUID('4')
+  programId!: string;
+
   @EmptyToUndefined()
   @IsString()
   @MinLength(2)
@@ -53,4 +57,10 @@ export class UpdateBranchDto {
   @MaxLength(50)
   @Matches(PROGRAM_CODE_PATTERN, { message: PROGRAM_CODE_MESSAGE })
   code?: string;
+}
+
+export class ListBranchesQueryDto {
+  @IsOptional()
+  @IsUUID('4')
+  programId?: string;
 }

@@ -74,8 +74,8 @@ curl -s -X PATCH http://localhost:3000/institute/programs/<id> \
 ```bash
 curl -s -X POST http://localhost:3000/institute/branches \
   -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
-  -d '{"name":"Computer Science","code":"CS"}'
-curl -s http://localhost:3000/institute/branches -H "Authorization: Bearer $TOKEN"
+  -d '{"programId":"<programId>","name":"Computer Science","code":"CS"}'
+curl -s "http://localhost:3000/institute/branches?programId=<programId>" -H "Authorization: Bearer $TOKEN"
 curl -s -X PATCH http://localhost:3000/institute/branches/<id> \
   -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
   -d '{"name":"Computer Science and Engineering"}'

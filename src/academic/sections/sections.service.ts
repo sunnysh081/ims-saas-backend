@@ -40,6 +40,7 @@ export class SectionsService {
       .select({
         id: sections.id,
         batchId: sections.batchId,
+        programId: batches.programId,
         name: sections.name,
         branchId: sections.branchId,
         branchName: branches.name,
@@ -48,6 +49,7 @@ export class SectionsService {
         updatedAt: sections.updatedAt,
       })
       .from(sections)
+      .innerJoin(batches, eq(batches.id, sections.batchId))
       .leftJoin(branches, eq(branches.id, sections.branchId))
       .where(and(...filters))
       .orderBy(sections.name);
@@ -80,10 +82,10 @@ export class SectionsService {
   }
 
   async create(instituteId: string, dto: CreateSectionDto) {
-    await this.assertBatch(instituteId, dto.batchId);
+    const batch = await this.assertBatch(instituteId, dto.batchId);
 
     if (dto.branchId) {
-      await this.assertBranch(instituteId, dto.branchId);
+      await this.assertBranch(instituteId, dto.branchId, batch.programId);
     }
 
     const [created] = await this.database.db
@@ -114,10 +116,11 @@ export class SectionsService {
   }
 
   async update(instituteId: string, id: string, dto: UpdateSectionDto) {
-    await this.findOne(instituteId, id);
+    const section = await this.findOne(instituteId, id);
+    const batch = await this.assertBatch(instituteId, section.batchId);
 
     if (dto.branchId) {
-      await this.assertBranch(instituteId, dto.branchId);
+      await this.assertBranch(instituteId, dto.branchId, batch.programId);
     }
 
     await this.database.db
@@ -137,6 +140,7 @@ export class SectionsService {
     const [batch] = await this.database.db
       .select({
         id: batches.id,
+        programId: batches.programId,
       })
       .from(batches)
       .where(
@@ -151,9 +155,15 @@ export class SectionsService {
     if (!batch) {
       throw new NotFoundException('Batch not found');
     }
+
+    return batch;
   }
 
-  private async assertBranch(instituteId: string, branchId: string) {
+  private async assertBranch(
+    instituteId: string,
+    branchId: string,
+    programId: string,
+  ) {
     const [branch] = await this.database.db
       .select({
         id: branches.id,
@@ -163,13 +173,16 @@ export class SectionsService {
         and(
           eq(branches.id, branchId),
           eq(branches.instituteId, instituteId),
+          eq(branches.programId, programId),
           isNull(branches.deletedAt),
         ),
       )
       .limit(1);
 
     if (!branch) {
-      throw new NotFoundException('Branch not found');
+      throw new NotFoundException(
+        'Branch not found for this program',
+      );
     }
   }
 }

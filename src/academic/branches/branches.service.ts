@@ -9,8 +9,12 @@ import { and, eq, isNull } from 'drizzle-orm';
 
 import { AppLogger } from '../../common/logging/logger.service';
 import { DatabaseService } from '../../database/database.service';
-import { branches } from '../../database/schema';
-import { CreateBranchDto, UpdateBranchDto } from './dto/branch.dto';
+import { branches, programs } from '../../database/schema';
+import {
+  CreateBranchDto,
+  ListBranchesQueryDto,
+  UpdateBranchDto,
+} from './dto/branch.dto';
 
 @Injectable()
 export class BranchesService {
@@ -19,31 +23,45 @@ export class BranchesService {
     private readonly logger: AppLogger,
   ) {}
 
-  async findAll(instituteId: string) {
+  async findAll(instituteId: string, query: ListBranchesQueryDto = {}) {
+    const filters = [
+      eq(branches.instituteId, instituteId),
+      isNull(branches.deletedAt),
+    ];
+
+    if (query.programId) {
+      filters.push(eq(branches.programId, query.programId));
+    }
+
     return this.database.db
       .select({
         id: branches.id,
+        programId: branches.programId,
+        programName: programs.name,
+        programCode: programs.code,
         name: branches.name,
         code: branches.code,
         createdAt: branches.createdAt,
         updatedAt: branches.updatedAt,
       })
       .from(branches)
-      .where(
-        and(eq(branches.instituteId, instituteId), isNull(branches.deletedAt)),
-      )
-      .orderBy(branches.name);
+      .innerJoin(programs, eq(programs.id, branches.programId))
+      .where(and(...filters))
+      .orderBy(programs.name, branches.name);
   }
 
   async create(instituteId: string, dto: CreateBranchDto) {
+    await this.assertProgram(instituteId, dto.programId);
+
     const code = dto.code.toUpperCase();
 
-    await this.assertUniqueCode(instituteId, code);
+    await this.assertUniqueCode(dto.programId, code);
 
     const [created] = await this.database.db
       .insert(branches)
       .values({
         instituteId,
+        programId: dto.programId,
         name: dto.name,
         code,
       })
@@ -69,12 +87,16 @@ export class BranchesService {
     const [branch] = await this.database.db
       .select({
         id: branches.id,
+        programId: branches.programId,
+        programName: programs.name,
+        programCode: programs.code,
         name: branches.name,
         code: branches.code,
         createdAt: branches.createdAt,
         updatedAt: branches.updatedAt,
       })
       .from(branches)
+      .innerJoin(programs, eq(programs.id, branches.programId))
       .where(
         and(
           eq(branches.id, id),
@@ -92,12 +114,12 @@ export class BranchesService {
   }
 
   async update(instituteId: string, id: string, dto: UpdateBranchDto) {
-    await this.findOne(instituteId, id);
+    const current = await this.findOne(instituteId, id);
 
     const code = dto.code?.toUpperCase();
 
     if (code) {
-      await this.assertUniqueCode(instituteId, code, id);
+      await this.assertUniqueCode(current.programId, code, id);
     }
 
     await this.database.db
@@ -112,8 +134,28 @@ export class BranchesService {
     return this.findOne(instituteId, id);
   }
 
+  private async assertProgram(instituteId: string, programId: string) {
+    const [program] = await this.database.db
+      .select({
+        id: programs.id,
+      })
+      .from(programs)
+      .where(
+        and(
+          eq(programs.id, programId),
+          eq(programs.instituteId, instituteId),
+          isNull(programs.deletedAt),
+        ),
+      )
+      .limit(1);
+
+    if (!program) {
+      throw new NotFoundException('Program not found');
+    }
+  }
+
   private async assertUniqueCode(
-    instituteId: string,
+    programId: string,
     code: string,
     excludeId?: string,
   ) {
@@ -124,7 +166,7 @@ export class BranchesService {
       .from(branches)
       .where(
         and(
-          eq(branches.instituteId, instituteId),
+          eq(branches.programId, programId),
           eq(branches.code, code),
           isNull(branches.deletedAt),
         ),
@@ -132,7 +174,7 @@ export class BranchesService {
       .limit(1);
 
     if (existing && existing.id !== excludeId) {
-      throw new ConflictException('Branch code already exists');
+      throw new ConflictException('Branch code already exists for this program');
     }
   }
 }

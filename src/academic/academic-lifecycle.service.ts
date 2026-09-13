@@ -207,6 +207,7 @@ export class AcademicLifecycleService {
       const [toBranch] = await tx
         .select({
           id: branches.id,
+          programId: branches.programId,
         })
         .from(branches)
         .where(
@@ -220,6 +221,21 @@ export class AcademicLifecycleService {
 
       if (!toBranch) {
         throw new NotFoundException('Target branch not found');
+      }
+
+      const [fromSection] = await tx
+        .select({
+          programId: batches.programId,
+        })
+        .from(sections)
+        .innerJoin(batches, eq(batches.id, sections.batchId))
+        .where(eq(sections.id, enrollment.sectionId))
+        .limit(1);
+
+      if (!fromSection || toBranch.programId !== fromSection.programId) {
+        throw new BadRequestException(
+          'Target branch must belong to the same program',
+        );
       }
 
       const fromBranchId = enrollment.branchId;
@@ -585,13 +601,16 @@ export class AcademicLifecycleService {
             and(
               eq(branches.id, split.branchId),
               eq(branches.instituteId, instituteId),
+              eq(branches.programId, batch.programId),
               isNull(branches.deletedAt),
             ),
           )
           .limit(1);
 
         if (!branch) {
-          throw new NotFoundException(`Branch not found: ${split.branchId}`);
+          throw new NotFoundException(
+            `Branch not found for this program: ${split.branchId}`,
+          );
         }
 
         if (split.studentIds.length > split.capacity) {

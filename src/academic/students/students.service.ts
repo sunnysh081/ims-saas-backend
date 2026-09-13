@@ -13,6 +13,7 @@ import { AppLogger } from '../../common/logging/logger.service';
 import { DatabaseService } from '../../database/database.service';
 import {
   academicAuditLogs,
+  batches,
   branchChangeLogs,
   branches,
   sectionChangeLogs,
@@ -111,7 +112,11 @@ export class StudentsService {
         updatedAt: students.updatedAt,
         enrollmentId: studentEnrollments.id,
         sectionId: studentEnrollments.sectionId,
+        sectionName: sections.name,
+        branchId: sections.branchId,
+        branchName: branches.name,
         semesterId: studentEnrollments.semesterId,
+        semesterLabel: semesters.label,
         academicYear: studentEnrollments.academicYear,
       })
       .from(students)
@@ -120,7 +125,14 @@ export class StudentsService {
         eq(studentEnrollments.studentId, students.id),
       )
       .innerJoin(sections, eq(sections.id, studentEnrollments.sectionId))
-      .where(and(...enrollmentFilters))
+      .leftJoin(branches, eq(branches.id, sections.branchId))
+      .leftJoin(semesters, eq(semesters.id, studentEnrollments.semesterId))
+      .where(
+        and(
+          ...enrollmentFilters,
+          isNull(sections.deletedAt),
+        ),
+      )
       .orderBy(students.rollNumber)
       .limit(limit)
       .offset((page - 1) * limit);
@@ -135,7 +147,12 @@ export class StudentsService {
         eq(studentEnrollments.studentId, students.id),
       )
       .innerJoin(sections, eq(sections.id, studentEnrollments.sectionId))
-      .where(and(...enrollmentFilters));
+      .where(
+        and(
+          ...enrollmentFilters,
+          isNull(sections.deletedAt),
+        ),
+      );
 
     return {
       items: rows,
@@ -416,6 +433,7 @@ export class StudentsService {
         sectionId: studentEnrollments.sectionId,
         sectionName: sections.name,
         branchId: sections.branchId,
+        programId: batches.programId,
         academicYear: studentEnrollments.academicYear,
         status: studentEnrollments.status,
         active: studentEnrollments.active,
@@ -423,6 +441,7 @@ export class StudentsService {
       })
       .from(studentEnrollments)
       .leftJoin(sections, eq(studentEnrollments.sectionId, sections.id))
+      .leftJoin(batches, eq(batches.id, sections.batchId))
       .leftJoin(semesters, eq(studentEnrollments.semesterId, semesters.id))
       .where(
         and(

@@ -106,6 +106,7 @@ export async function seedAcademicDemo(
       .insert(branches)
       .values({
         instituteId: institute.id,
+        programId: program.id,
         name: 'Computer Science',
         code: 'CS',
       })
@@ -117,6 +118,7 @@ export async function seedAcademicDemo(
       .insert(branches)
       .values({
         instituteId: institute.id,
+        programId: program.id,
         name: 'Electronics and Communication',
         code: 'EC',
       })

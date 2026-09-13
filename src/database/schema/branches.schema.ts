@@ -10,6 +10,7 @@ import {
 import { sql } from 'drizzle-orm';
 
 import { institutes } from './institutes.schema';
+import { programs } from './programs.schema';
 
 export const branches = pgTable(
   'branches',
@@ -19,6 +20,12 @@ export const branches = pgTable(
     instituteId: uuid('institute_id')
       .notNull()
       .references(() => institutes.id, {
+        onDelete: 'cascade',
+      }),
+
+    programId: uuid('program_id')
+      .notNull()
+      .references(() => programs.id, {
         onDelete: 'cascade',
       }),
 
@@ -48,10 +55,12 @@ export const branches = pgTable(
   },
 
   (table) => [
-    uniqueIndex('branches_institute_code_unique')
-      .on(table.instituteId, table.code)
+    uniqueIndex('branches_program_code_unique')
+      .on(table.programId, table.code)
       .where(sql`${table.deletedAt} IS NULL`),
 
     index('branches_institute_id_idx').on(table.instituteId),
+
+    index('branches_program_id_idx').on(table.programId),
   ],
 );

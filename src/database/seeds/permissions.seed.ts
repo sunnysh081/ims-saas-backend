@@ -106,13 +106,13 @@ const CATALOG = [
         name: 'View branches',
         slug: 'branches.read',
         action: 'read' as const,
-        description: 'List institute branches.',
+        description: 'List program branches.',
       },
       {
         name: 'Create branches',
         slug: 'branches.create',
         action: 'create' as const,
-        description: 'Add branches to the institute.',
+        description: 'Add branches to a program.',
       },
       {
         name: 'Update branches',

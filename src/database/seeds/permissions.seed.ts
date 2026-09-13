@@ -273,11 +273,259 @@ const CATALOG = [
       },
     ],
   },
+  {
+    name: 'Subjects',
+    slug: 'subjects',
+    description: 'Subject catalog for a program.',
+    permissions: [
+      {
+        name: 'View subjects',
+        slug: 'subjects.read',
+        action: 'read' as const,
+        description: 'List and view subjects.',
+      },
+      {
+        name: 'Create subjects',
+        slug: 'subjects.create',
+        action: 'create' as const,
+        description: 'Add subjects to a program.',
+      },
+      {
+        name: 'Update subjects',
+        slug: 'subjects.update',
+        action: 'update' as const,
+        description: 'Edit subjects.',
+      },
+      {
+        name: 'Delete subjects',
+        slug: 'subjects.delete',
+        action: 'delete' as const,
+        description: 'Deactivate subjects.',
+      },
+    ],
+  },
+  {
+    name: 'Syllabus',
+    slug: 'syllabus',
+    description: 'Subject syllabus versions and units.',
+    permissions: [
+      {
+        name: 'View syllabus',
+        slug: 'syllabus.read',
+        action: 'read' as const,
+        description: 'List and view syllabus versions and units.',
+      },
+      {
+        name: 'Create syllabus',
+        slug: 'syllabus.create',
+        action: 'create' as const,
+        description: 'Create syllabus versions.',
+      },
+      {
+        name: 'Update syllabus',
+        slug: 'syllabus.update',
+        action: 'update' as const,
+        description: 'Edit syllabus versions and manage units.',
+      },
+      {
+        name: 'Manage syllabus',
+        slug: 'syllabus.manage',
+        action: 'manage' as const,
+        description: 'Activate a syllabus version.',
+      },
+    ],
+  },
+  {
+    name: 'Program plans',
+    slug: 'program-plans',
+    description: 'Which subjects belong to a program, branch, and semester.',
+    permissions: [
+      {
+        name: 'View program plans',
+        slug: 'program-plans.read',
+        action: 'read' as const,
+        description: 'List program plan entries.',
+      },
+      {
+        name: 'Create program plans',
+        slug: 'program-plans.create',
+        action: 'create' as const,
+        description: 'Assign subjects to a program, branch, and semester.',
+      },
+      {
+        name: 'Delete program plans',
+        slug: 'program-plans.delete',
+        action: 'delete' as const,
+        description: 'Remove a program plan entry.',
+      },
+    ],
+  },
+  {
+    name: 'Electives',
+    slug: 'electives',
+    description: 'Elective groups, options, and seat management.',
+    permissions: [
+      {
+        name: 'View elective groups',
+        slug: 'electives.read',
+        action: 'read' as const,
+        description: 'View elective groups, options, and seat matrix.',
+      },
+      {
+        name: 'Manage elective groups',
+        slug: 'electives.manage',
+        action: 'manage' as const,
+        description: 'Create groups, manage options, and confirm choices.',
+      },
+    ],
+  },
+  {
+    name: 'Elective choices',
+    slug: 'elective-choices',
+    description: 'Student elective subject choices.',
+    permissions: [
+      {
+        name: 'View elective choices',
+        slug: 'elective-choices.read',
+        action: 'read' as const,
+        description: 'List student elective choices.',
+      },
+      {
+        name: 'Submit elective choices',
+        slug: 'elective-choices.create',
+        action: 'create' as const,
+        description: 'Submit, change, or withdraw an elective choice.',
+      },
+    ],
+  },
+  {
+    name: 'Course offerings',
+    slug: 'offerings',
+    description: 'Subject-to-section and subject-to-elective-group offerings.',
+    permissions: [
+      {
+        name: 'View offerings',
+        slug: 'offerings.read',
+        action: 'read' as const,
+        description: 'List and view course offerings.',
+      },
+      {
+        name: 'Create offerings',
+        slug: 'offerings.create',
+        action: 'create' as const,
+        description: 'Create offerings manually or generate them in bulk.',
+      },
+      {
+        name: 'Update offerings',
+        slug: 'offerings.update',
+        action: 'update' as const,
+        description: 'Reassign faculty or syllabus on an offering.',
+      },
+    ],
+  },
+  {
+    name: 'Timetable',
+    slug: 'timetable',
+    description: 'Weekly timetable slots per offering.',
+    permissions: [
+      {
+        name: 'View timetable',
+        slug: 'timetable.read',
+        action: 'read' as const,
+        description: 'List timetable slots.',
+      },
+      {
+        name: 'Create timetable slots',
+        slug: 'timetable.create',
+        action: 'create' as const,
+        description: 'Add a timetable slot to an offering.',
+      },
+      {
+        name: 'Update timetable slots',
+        slug: 'timetable.update',
+        action: 'update' as const,
+        description: 'Edit or deactivate a timetable slot.',
+      },
+      {
+        name: 'Manage timetable',
+        slug: 'timetable.manage',
+        action: 'manage' as const,
+        description: 'Generate attendance sessions from the timetable.',
+      },
+    ],
+  },
+  {
+    name: 'Attendance',
+    slug: 'attendance',
+    description: 'Attendance sessions, records, and summaries.',
+    permissions: [
+      {
+        name: 'View attendance',
+        slug: 'attendance.read',
+        action: 'read' as const,
+        description: 'View sessions, records, and summaries.',
+      },
+      {
+        name: 'Mark attendance',
+        slug: 'attendance.mark',
+        action: 'create' as const,
+        description: 'Mark attendance for a session.',
+      },
+      {
+        name: 'Manage attendance',
+        slug: 'attendance.manage',
+        action: 'manage' as const,
+        description: 'Create ad-hoc sessions, cancel sessions, and correct records.',
+      },
+    ],
+  },
+  {
+    name: 'Leave',
+    slug: 'leave',
+    description: 'Student leave requests and their effect on attendance.',
+    permissions: [
+      {
+        name: 'View leave requests',
+        slug: 'leave.read',
+        action: 'read' as const,
+        description: 'List and view leave requests.',
+      },
+      {
+        name: 'Submit leave requests',
+        slug: 'leave.create',
+        action: 'create' as const,
+        description: 'Submit a leave request for a student.',
+      },
+      {
+        name: 'Review leave requests',
+        slug: 'leave.review',
+        action: 'update' as const,
+        description: 'Approve or reject a leave request.',
+      },
+    ],
+  },
+  {
+    name: 'Holidays',
+    slug: 'holidays',
+    description: 'Institute holiday calendar.',
+    permissions: [
+      {
+        name: 'View holidays',
+        slug: 'holidays.read',
+        action: 'read' as const,
+        description: 'List holidays.',
+      },
+      {
+        name: 'Manage holidays',
+        slug: 'holidays.create',
+        action: 'create' as const,
+        description: 'Add or remove holidays.',
+      },
+    ],
+  },
 ];
 
-export async function seedPermissions(
-  database: DatabaseService,
-): Promise<void> {
+export async function seedPermissions(database: DatabaseService): Promise<void> {
   for (const module of CATALOG) {
     const [existingModule] = await database.db
       .select({
@@ -318,12 +566,7 @@ export async function seedPermissions(
           id: permissions.id,
         })
         .from(permissions)
-        .where(
-          and(
-            eq(permissions.moduleId, moduleId),
-            eq(permissions.slug, permission.slug),
-          ),
-        )
+        .where(and(eq(permissions.moduleId, moduleId), eq(permissions.slug, permission.slug)))
         .limit(1);
 
       if (existingPermission) {

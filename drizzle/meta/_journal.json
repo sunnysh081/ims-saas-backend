@@ -50,6 +50,20 @@
       "when": 1789275142858,
       "tag": "0006_blue_leo",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789295413935,
+      "tag": "0007_tense_preak",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789296448743,
+      "tag": "0008_jittery_invisible_woman",
+      "breakpoints": true
     }
   ]
 }

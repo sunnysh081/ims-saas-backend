@@ -1,0 +1,1 @@
+ALTER TABLE "course_offerings" ALTER COLUMN "batch_id" DROP NOT NULL;

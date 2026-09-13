@@ -12,6 +12,9 @@ import { AuthorizationModule } from './authorization/authorization.module';
 import { AcademicModule } from './academic/academic.module';
 import { InstituteModule } from './institute/institute.module';
 import { PlatformModule } from './platform/platform.module';
+import { CurriculumModule } from './curriculum/curriculum.module';
+import { TimetableModule } from './timetable/timetable.module';
+import { AttendanceModule } from './attendance/attendance.module';
 
 @Module({
   imports: [
@@ -25,6 +28,9 @@ import { PlatformModule } from './platform/platform.module';
     PlatformModule,
     InstituteModule,
     AcademicModule,
+    CurriculumModule,
+    TimetableModule,
+    AttendanceModule,
   ],
   controllers: [AppController],
   providers: [

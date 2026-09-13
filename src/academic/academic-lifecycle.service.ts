@@ -34,7 +34,7 @@ export class AcademicLifecycleService {
   constructor(
     private readonly database: DatabaseService,
     private readonly audit: AcademicAuditService,
-  ) {}
+  ) { }
 
   async changeSection(
     instituteId: string,
@@ -43,6 +43,7 @@ export class AcademicLifecycleService {
     reason: string | undefined,
     changedBy: string,
     executor?: AcademicExecutor,
+    options?: { skipAudit?: boolean },
   ) {
     const run = async (tx: AcademicExecutor) => {
       const enrollment = await this.requireActiveEnrollment(
@@ -116,29 +117,31 @@ export class AcademicLifecycleService {
         changedBy,
       });
 
-      await this.audit.write(tx, {
-        instituteId,
-        studentId,
-        batchId: toSnapshot?.batchId ?? fromSnapshot?.batchId,
-        action: 'SECTION_CHANGE',
-        summary: `Moved from ${sectionLabel(fromSnapshot)} to ${sectionLabel(toSnapshot)}`,
-        fromLink: sectionLink(fromSnapshot),
-        toLink: sectionLink(toSnapshot),
-        fromPayload: {
-          ...fromSnapshot,
-          semesterId: enrollment.semesterId,
-          semesterLabel: semester?.semesterLabel,
-          academicYear: enrollment.academicYear,
-        },
-        toPayload: {
-          ...toSnapshot,
-          semesterId: enrollment.semesterId,
-          semesterLabel: semester?.semesterLabel,
-          academicYear: enrollment.academicYear,
-        },
-        reason,
-        changedBy,
-      });
+      if (!options?.skipAudit) {
+        await this.audit.write(tx, {
+          instituteId,
+          studentId,
+          batchId: toSnapshot?.batchId ?? fromSnapshot?.batchId,
+          action: 'SECTION_CHANGE',
+          summary: `Moved from ${sectionLabel(fromSnapshot)} to ${sectionLabel(toSnapshot)}`,
+          fromLink: sectionLink(fromSnapshot),
+          toLink: sectionLink(toSnapshot),
+          fromPayload: {
+            ...fromSnapshot,
+            semesterId: enrollment.semesterId,
+            semesterLabel: semester?.semesterLabel,
+            academicYear: enrollment.academicYear,
+          },
+          toPayload: {
+            ...toSnapshot,
+            semesterId: enrollment.semesterId,
+            semesterLabel: semester?.semesterLabel,
+            academicYear: enrollment.academicYear,
+          },
+          reason,
+          changedBy,
+        });
+      }
 
       return created.id;
     };
@@ -264,6 +267,7 @@ export class AcademicLifecycleService {
         reason,
         changedBy,
         tx,
+        { skipAudit: true },
       );
 
       await tx.insert(branchChangeLogs).values({
@@ -715,12 +719,12 @@ export class AcademicLifecycleService {
         fromLink: batchLink(batchId, 'Combined batch'),
         toLink: createdSections[0]
           ? sectionLink({
-              sectionId: createdSections[0].id,
-              sectionName: createdSections[0].name,
-              branchId: createdSections[0].branchId,
-              branchName: null,
-              batchId,
-            })
+            sectionId: createdSections[0].id,
+            sectionName: createdSections[0].name,
+            branchId: createdSections[0].branchId,
+            branchName: null,
+            batchId,
+          })
           : batchLink(batchId, 'Split batch'),
         toPayload: {
           sections: createdSections,

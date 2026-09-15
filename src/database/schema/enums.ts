@@ -23,6 +23,11 @@ export const programUniversityEnum = pgEnum('program_university', [
   'deemed',
 ]);
 
+export const branchOutcomeTypeEnum = pgEnum('branch_outcome_type', [
+  'PO',
+  'PEO',
+]);
+
 export const studentStatusEnum = pgEnum('student_status', [
   'ACTIVE',
   'DETAINED',

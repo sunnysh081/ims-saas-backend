@@ -13,6 +13,7 @@ export * from './institutes.schema';
 export * from './auth-sessions.schema';
 export * from './programs.schema';
 export * from './branches.schema';
+export * from './branch-outcomes.schema';
 export * from './batches.schema';
 export * from './semesters.schema';
 export * from './sections.schema';

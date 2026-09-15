@@ -43,6 +43,7 @@ export class SectionsService {
         name: sections.name,
         branchId: sections.branchId,
         branchName: branches.name,
+        branchCode: branches.code,
         capacity: sections.capacity,
         createdAt: sections.createdAt,
         updatedAt: sections.updatedAt,

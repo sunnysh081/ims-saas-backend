@@ -123,6 +123,31 @@ const CATALOG = [
     ],
   },
   {
+    name: 'Subjects',
+    slug: 'subjects',
+    description: 'Curriculum subjects offered under a program.',
+    permissions: [
+      {
+        name: 'View subjects',
+        slug: 'subjects.read',
+        action: 'read' as const,
+        description: 'List institute subjects.',
+      },
+      {
+        name: 'Create subjects',
+        slug: 'subjects.create',
+        action: 'create' as const,
+        description: 'Add subjects to a program.',
+      },
+      {
+        name: 'Update subjects',
+        slug: 'subjects.update',
+        action: 'update' as const,
+        description: 'Edit institute subjects.',
+      },
+    ],
+  },
+  {
     name: 'Batches',
     slug: 'batches',
     description: 'Admission batches and branch splits.',

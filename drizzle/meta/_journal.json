@@ -43,6 +43,13 @@
       "when": 1789498284432,
       "tag": "0005_dry_microchip",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789503137761,
+      "tag": "0006_known_phil_sheldon",
+      "breakpoints": true
     }
   ]
 }

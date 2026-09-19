@@ -12,6 +12,8 @@ export * from './institute-users.schema';
 export * from './institutes.schema';
 export * from './auth-sessions.schema';
 export * from './programs.schema';
+export * from './subjects.schema';
+export * from './subject-outcomes.schema';
 export * from './branches.schema';
 export * from './branch-outcomes.schema';
 export * from './batches.schema';

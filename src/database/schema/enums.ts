@@ -28,6 +28,17 @@ export const branchOutcomeTypeEnum = pgEnum('branch_outcome_type', [
   'PEO',
 ]);
 
+export const subjectTypeEnum = pgEnum('subject_type', [
+  'THEORY',
+  'PRACTICAL',
+  'THEORY_PRACTICAL',
+]);
+
+export const subjectOutcomeTypeEnum = pgEnum('subject_outcome_type', [
+  'OBJECTIVE',
+  'OUTCOME',
+]);
+
 export const studentStatusEnum = pgEnum('student_status', [
   'ACTIVE',
   'DETAINED',

@@ -18,6 +18,8 @@ import { SemestersController } from './semesters/semesters.controller';
 import { SemestersService } from './semesters/semesters.service';
 import { StudentsController } from './students/students.controller';
 import { StudentsService } from './students/students.service';
+import { SubjectsController } from './subjects/subjects.controller';
+import { SubjectsService } from './subjects/subjects.service';
 
 @Module({
   controllers: [
@@ -26,6 +28,7 @@ import { StudentsService } from './students/students.service';
     SemestersController,
     SectionsController,
     StudentsController,
+    SubjectsController,
     EnrollmentsController,
     SemesterTransitionsController,
     SemesterHistoryController,
@@ -37,6 +40,7 @@ import { StudentsService } from './students/students.service';
     SemestersService,
     SectionsService,
     StudentsService,
+    SubjectsService,
     EnrollmentsService,
     SemesterHistoryService,
     InstituteGuard,

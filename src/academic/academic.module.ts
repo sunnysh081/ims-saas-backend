@@ -7,6 +7,8 @@ import { BatchesController } from './batches/batches.controller';
 import { BatchesService } from './batches/batches.service';
 import { BranchesController } from './branches/branches.controller';
 import { BranchesService } from './branches/branches.service';
+import { CurriculumController } from './curriculum/curriculum.controller';
+import { CurriculumService } from './curriculum/curriculum.service';
 import { EnrollmentsController } from './enrollments/enrollments.controller';
 import { EnrollmentsService } from './enrollments/enrollments.service';
 import { SectionsController } from './sections/sections.controller';
@@ -32,6 +34,7 @@ import { SyllabiService } from './syllabi/syllabi.service';
     StudentsController,
     SubjectsController,
     SyllabiController,
+    CurriculumController,
     EnrollmentsController,
     SemesterTransitionsController,
     SemesterHistoryController,
@@ -45,6 +48,7 @@ import { SyllabiService } from './syllabi/syllabi.service';
     StudentsService,
     SubjectsService,
     SyllabiService,
+    CurriculumService,
     EnrollmentsService,
     SemesterHistoryService,
     InstituteGuard,

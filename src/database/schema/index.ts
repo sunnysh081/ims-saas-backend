@@ -20,6 +20,7 @@ export * from './branches.schema';
 export * from './branch-outcomes.schema';
 export * from './batches.schema';
 export * from './semesters.schema';
+export * from './curriculum-plans.schema';
 export * from './sections.schema';
 export * from './students.schema';
 export * from './student-enrollments.schema';

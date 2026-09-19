@@ -148,6 +148,25 @@ const CATALOG = [
     ],
   },
   {
+    name: 'Curriculum',
+    slug: 'curriculum',
+    description: 'Semester-wise subject structure for a batch.',
+    permissions: [
+      {
+        name: 'View curriculum',
+        slug: 'curriculum.read',
+        action: 'read' as const,
+        description: 'View a batch’s semester-wise subject structure.',
+      },
+      {
+        name: 'Manage curriculum',
+        slug: 'curriculum.create',
+        action: 'create' as const,
+        description: 'Assign and remove subjects from a batch’s semesters.',
+      },
+    ],
+  },
+  {
     name: 'Syllabi',
     slug: 'syllabi',
     description: 'Batch-wise syllabus for a subject.',

@@ -148,6 +148,31 @@ const CATALOG = [
     ],
   },
   {
+    name: 'Syllabi',
+    slug: 'syllabi',
+    description: 'Batch-wise syllabus for a subject.',
+    permissions: [
+      {
+        name: 'View syllabi',
+        slug: 'syllabi.read',
+        action: 'read' as const,
+        description: 'List and view batch syllabi.',
+      },
+      {
+        name: 'Create syllabi',
+        slug: 'syllabi.create',
+        action: 'create' as const,
+        description: 'Add a syllabus for a subject in a batch.',
+      },
+      {
+        name: 'Update syllabi',
+        slug: 'syllabi.update',
+        action: 'update' as const,
+        description: 'Edit batch syllabi.',
+      },
+    ],
+  },
+  {
     name: 'Batches',
     slug: 'batches',
     description: 'Admission batches and branch splits.',

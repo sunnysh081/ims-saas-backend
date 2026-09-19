@@ -20,6 +20,8 @@ import { StudentsController } from './students/students.controller';
 import { StudentsService } from './students/students.service';
 import { SubjectsController } from './subjects/subjects.controller';
 import { SubjectsService } from './subjects/subjects.service';
+import { SyllabiController } from './syllabi/syllabi.controller';
+import { SyllabiService } from './syllabi/syllabi.service';
 
 @Module({
   controllers: [
@@ -29,6 +31,7 @@ import { SubjectsService } from './subjects/subjects.service';
     SectionsController,
     StudentsController,
     SubjectsController,
+    SyllabiController,
     EnrollmentsController,
     SemesterTransitionsController,
     SemesterHistoryController,
@@ -41,6 +44,7 @@ import { SubjectsService } from './subjects/subjects.service';
     SectionsService,
     StudentsService,
     SubjectsService,
+    SyllabiService,
     EnrollmentsService,
     SemesterHistoryService,
     InstituteGuard,

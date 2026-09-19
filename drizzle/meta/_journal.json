@@ -50,6 +50,13 @@
       "when": 1789503137761,
       "tag": "0006_known_phil_sheldon",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789811882872,
+      "tag": "0007_vengeful_meltdown",
+      "breakpoints": true
     }
   ]
 }

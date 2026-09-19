@@ -48,6 +48,12 @@ export const subjects = pgTable(
 
     type: subjectTypeEnum('type').notNull().default('THEORY'),
 
+    lectureHours: integer('lecture_hours'),
+
+    tutorialHours: integer('tutorial_hours'),
+
+    practicalHours: integer('practical_hours'),
+
     maxMarks: integer('max_marks').notNull().default(100),
 
     passingMarks: integer('passing_marks').notNull().default(35),

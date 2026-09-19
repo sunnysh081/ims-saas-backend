@@ -75,6 +75,24 @@ export class CreateSubjectDto {
   @IsIn(SUBJECT_TYPES)
   type!: (typeof SUBJECT_TYPES)[number];
 
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(20)
+  lectureHours?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(20)
+  tutorialHours?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(20)
+  practicalHours?: number;
+
   @IsInt()
   @Min(1)
   @Max(1000)
@@ -156,6 +174,24 @@ export class UpdateSubjectDto {
   @IsOptional()
   @IsIn(SUBJECT_TYPES)
   type?: (typeof SUBJECT_TYPES)[number];
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(20)
+  lectureHours?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(20)
+  tutorialHours?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(20)
+  practicalHours?: number;
 
   @IsOptional()
   @IsInt()

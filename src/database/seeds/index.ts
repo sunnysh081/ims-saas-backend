@@ -3,7 +3,7 @@ import 'dotenv/config';
 import { DatabaseService } from '../database.service';
 import { seedAcademicDemo } from './academic.seed';
 import { seedPermissions } from './permissions.seed';
-import { seedSystemRoles } from './roles.seed';
+import { seedStudentRolePermissions, seedSystemRoles } from './roles.seed';
 import { seedSuperAdmin } from './super-admin.seed';
 
 async function bootstrap(): Promise<void> {
@@ -14,6 +14,7 @@ async function bootstrap(): Promise<void> {
 
     await seedSystemRoles(database);
     await seedPermissions(database);
+    await seedStudentRolePermissions(database);
     await seedSuperAdmin(database);
     await seedAcademicDemo(database);
     console.log('Database seed completed successfully.');

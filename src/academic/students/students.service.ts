@@ -1,18 +1,15 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 
 import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 
 import { paginationMeta } from '../dto/pagination.dto';
 import { AppLogger } from '../../common/logging/logger.service';
 import { DatabaseService } from '../../database/database.service';
+import { UsersService } from '../../platform/users.service';
 import {
   branchChangeLogs,
   branches,
+  roles,
   sectionChangeLogs,
   sections,
   semesterHistories,
@@ -20,38 +17,26 @@ import {
   studentEnrollments,
   students,
 } from '../../database/schema';
-import {
-  CreateStudentDto,
-  ListStudentsQueryDto,
-  UpdateStudentDto,
-} from './dto/student.dto';
+import { CreateStudentDto, ListStudentsQueryDto, PortalAccessDto, UpdateStudentDto } from './dto/student.dto';
 
 @Injectable()
 export class StudentsService {
   constructor(
     private readonly database: DatabaseService,
     private readonly logger: AppLogger,
+    private readonly usersService: UsersService,
   ) {}
 
-  async findAll(
-    instituteId: string,
-    query: ListStudentsQueryDto,
-  ) {
+  async findAll(instituteId: string, query: ListStudentsQueryDto) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
-    const filters = [
-      eq(students.instituteId, instituteId),
-      isNull(students.deletedAt),
-    ];
+    const filters = [eq(students.instituteId, instituteId), isNull(students.deletedAt)];
 
     if (query.status) {
       filters.push(eq(students.status, query.status));
     }
 
-    const needsEnrollment =
-      Boolean(query.batchId) ||
-      Boolean(query.sectionId) ||
-      Boolean(query.semesterId);
+    const needsEnrollment = Boolean(query.batchId) || Boolean(query.sectionId) || Boolean(query.semesterId);
 
     if (!needsEnrollment) {
       const rows = await this.database.db
@@ -75,20 +60,14 @@ export class StudentsService {
       };
     }
 
-    const enrollmentFilters = [
-      ...filters,
-      eq(studentEnrollments.instituteId, instituteId),
-      eq(studentEnrollments.active, true),
-    ];
+    const enrollmentFilters = [...filters, eq(studentEnrollments.instituteId, instituteId), eq(studentEnrollments.active, true)];
 
     if (query.sectionId) {
       enrollmentFilters.push(eq(studentEnrollments.sectionId, query.sectionId));
     }
 
     if (query.semesterId) {
-      enrollmentFilters.push(
-        eq(studentEnrollments.semesterId, query.semesterId),
-      );
+      enrollmentFilters.push(eq(studentEnrollments.semesterId, query.semesterId));
     }
 
     if (query.batchId) {
@@ -111,10 +90,7 @@ export class StudentsService {
         academicYear: studentEnrollments.academicYear,
       })
       .from(students)
-      .innerJoin(
-        studentEnrollments,
-        eq(studentEnrollments.studentId, students.id),
-      )
+      .innerJoin(studentEnrollments, eq(studentEnrollments.studentId, students.id))
       .innerJoin(sections, eq(sections.id, studentEnrollments.sectionId))
       .where(and(...enrollmentFilters))
       .orderBy(students.rollNumber)
@@ -126,10 +102,7 @@ export class StudentsService {
         count: sql<number>`count(*)`,
       })
       .from(students)
-      .innerJoin(
-        studentEnrollments,
-        eq(studentEnrollments.studentId, students.id),
-      )
+      .innerJoin(studentEnrollments, eq(studentEnrollments.studentId, students.id))
       .innerJoin(sections, eq(sections.id, studentEnrollments.sectionId))
       .where(and(...enrollmentFilters));
 
@@ -153,13 +126,7 @@ export class StudentsService {
         updatedAt: students.updatedAt,
       })
       .from(students)
-      .where(
-        and(
-          eq(students.id, id),
-          eq(students.instituteId, instituteId),
-          isNull(students.deletedAt),
-        ),
-      )
+      .where(and(eq(students.id, id), eq(students.instituteId, instituteId), isNull(students.deletedAt)))
       .limit(1);
 
     if (!student) {
@@ -244,12 +211,7 @@ export class StudentsService {
       })
       .from(semesterHistories)
       .innerJoin(semesters, eq(semesters.id, semesterHistories.semesterId))
-      .where(
-        and(
-          eq(semesterHistories.instituteId, instituteId),
-          eq(semesterHistories.studentId, id),
-        ),
-      )
+      .where(and(eq(semesterHistories.instituteId, instituteId), eq(semesterHistories.studentId, id)))
       .orderBy(semesters.number);
   }
 
@@ -267,12 +229,7 @@ export class StudentsService {
         changedBy: sectionChangeLogs.changedBy,
       })
       .from(sectionChangeLogs)
-      .where(
-        and(
-          eq(sectionChangeLogs.instituteId, instituteId),
-          eq(sectionChangeLogs.studentId, id),
-        ),
-      )
+      .where(and(eq(sectionChangeLogs.instituteId, instituteId), eq(sectionChangeLogs.studentId, id)))
       .orderBy(desc(sectionChangeLogs.changedAt));
   }
 
@@ -292,12 +249,7 @@ export class StudentsService {
       })
       .from(branchChangeLogs)
       .innerJoin(branches, eq(branches.id, branchChangeLogs.fromBranchId))
-      .where(
-        and(
-          eq(branchChangeLogs.instituteId, instituteId),
-          eq(branchChangeLogs.studentId, id),
-        ),
-      )
+      .where(and(eq(branchChangeLogs.instituteId, instituteId), eq(branchChangeLogs.studentId, id)))
       .orderBy(desc(branchChangeLogs.changedAt));
   }
 
@@ -323,11 +275,7 @@ export class StudentsService {
       .leftJoin(sections, eq(studentEnrollments.sectionId, sections.id))
       .leftJoin(semesters, eq(studentEnrollments.semesterId, semesters.id))
       .where(
-        and(
-          eq(studentEnrollments.studentId, id),
-          eq(studentEnrollments.instituteId, instituteId),
-          eq(studentEnrollments.active, true),
-        ),
+        and(eq(studentEnrollments.studentId, id), eq(studentEnrollments.instituteId, instituteId), eq(studentEnrollments.active, true)),
       )
       .limit(1);
 
@@ -338,25 +286,56 @@ export class StudentsService {
     return row;
   }
 
-  private async assertUnique(
-    instituteId: string,
-    rollNumber?: string,
-    email?: string,
-    excludeId?: string,
-  ) {
+  async enablePortalAccess(instituteId: string, id: string, dto: PortalAccessDto) {
+    const student = await this.findOne(instituteId, id);
+
+    if (student.userId) {
+      throw new ConflictException('Portal access is already enabled for this student');
+    }
+
+    const studentRoleId = await this.requireStudentRole();
+
+    const user = await this.usersService.createInstituteUser(instituteId, {
+      email: student.email,
+      password: dto.password,
+      firstName: student.name,
+      roleIds: [studentRoleId],
+    });
+
+    await this.database.db.update(students).set({ userId: user.id, updatedAt: new Date() }).where(eq(students.id, id));
+
+    this.logger.info('Student portal access enabled', {
+      operation: 'students.portal-access',
+      resource: 'student',
+      resourceId: id,
+      instituteId,
+    });
+
+    return this.findOne(instituteId, id);
+  }
+
+  private async requireStudentRole(): Promise<string> {
+    const [role] = await this.database.db
+      .select({ id: roles.id })
+      .from(roles)
+      .where(and(eq(roles.slug, 'student'), eq(roles.scope, 'institute'), isNull(roles.instituteId)))
+      .limit(1);
+
+    if (!role) {
+      throw new BadRequestException('Student role is not configured. Run the role seed first.');
+    }
+
+    return role.id;
+  }
+
+  private async assertUnique(instituteId: string, rollNumber?: string, email?: string, excludeId?: string) {
     if (rollNumber) {
       const [existing] = await this.database.db
         .select({
           id: students.id,
         })
         .from(students)
-        .where(
-          and(
-            eq(students.instituteId, instituteId),
-            eq(students.rollNumber, rollNumber),
-            isNull(students.deletedAt),
-          ),
-        )
+        .where(and(eq(students.instituteId, instituteId), eq(students.rollNumber, rollNumber), isNull(students.deletedAt)))
         .limit(1);
 
       if (existing && existing.id !== excludeId) {
@@ -370,13 +349,7 @@ export class StudentsService {
           id: students.id,
         })
         .from(students)
-        .where(
-          and(
-            eq(students.instituteId, instituteId),
-            eq(students.email, email),
-            isNull(students.deletedAt),
-          ),
-        )
+        .where(and(eq(students.instituteId, instituteId), eq(students.email, email), isNull(students.deletedAt)))
         .limit(1);
 
       if (existing && existing.id !== excludeId) {

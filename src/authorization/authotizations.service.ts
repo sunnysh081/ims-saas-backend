@@ -1,8 +1,4 @@
-import {
-  ForbiddenException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 
 import { ConfigService } from '@nestjs/config';
 
@@ -22,6 +18,7 @@ import {
   permissions,
   rolePermissions,
   roles,
+  students,
   userRoles,
   users,
 } from '../database/schema';
@@ -30,12 +27,7 @@ import { LoginDto } from './dto/login.dto';
 
 import { parseDurationSeconds } from './ttl';
 
-import {
-  AuthenticatedUser,
-  JwtPayload,
-  SessionMetadata,
-  TokenResponse,
-} from './types/authorization.type';
+import { AuthenticatedUser, JwtPayload, SessionMetadata, TokenResponse } from './types/authorization.type';
 
 const DEFAULT_REFRESH_TTL_MS = 14 * 24 * 60 * 60 * 1000;
 
@@ -47,11 +39,7 @@ export class AuthorizationService {
     private readonly configService: ConfigService,
   ) {}
 
-  async hasPermissions(
-    userId: string,
-    instituteId: string,
-    requiredPermissions: string[],
-  ): Promise<boolean> {
+  async hasPermissions(userId: string, instituteId: string, requiredPermissions: string[]): Promise<boolean> {
     if (!requiredPermissions.length) {
       return true;
     }
@@ -75,10 +63,7 @@ export class AuthorizationService {
 
           eq(instituteUsers.instituteId, instituteId),
 
-          or(
-            eq(roles.instituteId, instituteId),
-            and(isNull(roles.instituteId), eq(roles.scope, 'institute')),
-          ),
+          or(eq(roles.instituteId, instituteId), and(isNull(roles.instituteId), eq(roles.scope, 'institute'))),
 
           eq(roles.isActive, true),
 
@@ -91,17 +76,10 @@ export class AuthorizationService {
     return requiredPermissions.every((permission) => granted.has(permission));
   }
 
-  async login(
-    dto: LoginDto,
-    metadata?: SessionMetadata,
-  ): Promise<TokenResponse> {
+  async login(dto: LoginDto, metadata?: SessionMetadata): Promise<TokenResponse> {
     const email = dto.email.trim().toLowerCase();
 
-    const [user] = await this.database.db
-      .select()
-      .from(users)
-      .where(eq(users.email, email))
-      .limit(1);
+    const [user] = await this.database.db.select().from(users).where(eq(users.email, email)).limit(1);
 
     /**
      * Don't reveal whether the
@@ -124,10 +102,7 @@ export class AuthorizationService {
     return this.createSession(user.id, user.email, metadata);
   }
 
-  async refresh(
-    refreshToken: string,
-    metadata?: SessionMetadata,
-  ): Promise<TokenResponse> {
+  async refresh(refreshToken: string, metadata?: SessionMetadata): Promise<TokenResponse> {
     const parsed = this.parseRefreshToken(refreshToken);
 
     const session = await this.findUsableSession(parsed.sessionId);
@@ -136,10 +111,7 @@ export class AuthorizationService {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    const matches = await argon2.verify(
-      session.refreshTokenHash,
-      parsed.secret,
-    );
+    const matches = await argon2.verify(session.refreshTokenHash, parsed.secret);
 
     if (!matches) {
       await this.revokeSession(session.id);
@@ -147,11 +119,7 @@ export class AuthorizationService {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    const [user] = await this.database.db
-      .select()
-      .from(users)
-      .where(eq(users.id, session.userId))
-      .limit(1);
+    const [user] = await this.database.db.select().from(users).where(eq(users.id, session.userId)).limit(1);
 
     if (!user || !user.isActive || user.deletedAt) {
       await this.revokeSession(session.id);
@@ -169,9 +137,7 @@ export class AuthorizationService {
         revokedAt: new Date(),
         updatedAt: new Date(),
       })
-      .where(
-        and(eq(authSessions.id, sessionId), isNull(authSessions.revokedAt)),
-      );
+      .where(and(eq(authSessions.id, sessionId), isNull(authSessions.revokedAt)));
   }
 
   async getProfile(userId: string, instituteId?: string | null) {
@@ -208,33 +174,27 @@ export class AuthorizationService {
 
     const memberships = await this.listMemberships(userId);
     const activeInstituteId =
-      instituteId && memberships.some((item) => item.id === instituteId)
-        ? instituteId
-        : (memberships[0]?.id ?? null);
+      instituteId && memberships.some((item) => item.id === instituteId) ? instituteId : (memberships[0]?.id ?? null);
 
     const isSuperAdmin = assignedRoles.some(
-      (role) =>
-        role.slug === 'super_admin' &&
-        role.scope === 'platform' &&
-        role.instituteId === null,
+      (role) => role.slug === 'super_admin' && role.scope === 'platform' && role.instituteId === null,
     );
 
-    const isInstituteAdmin = activeInstituteId
-      ? await this.isInstituteAdmin(userId, activeInstituteId)
-      : false;
+    const isInstituteAdmin = activeInstituteId ? await this.isInstituteAdmin(userId, activeInstituteId) : false;
+
+    const studentId = activeInstituteId ? await this.findStudentId(userId, activeInstituteId) : null;
 
     return {
       ...user,
       roles: assignedRoles,
       institutes: memberships,
       instituteId: activeInstituteId,
-      institute:
-        memberships.find((item) => item.id === activeInstituteId) ?? null,
-      permissions: activeInstituteId
-        ? await this.listPermissionSlugs(userId, activeInstituteId)
-        : [],
+      institute: memberships.find((item) => item.id === activeInstituteId) ?? null,
+      permissions: activeInstituteId ? await this.listPermissionSlugs(userId, activeInstituteId) : [],
       isSuperAdmin,
       isInstituteAdmin,
+      isStudent: Boolean(studentId),
+      studentId,
     };
   }
 
@@ -259,10 +219,7 @@ export class AuthorizationService {
     return Boolean(role);
   }
 
-  async validateAccessToken(
-    payload: JwtPayload,
-    requestedInstituteId?: string,
-  ): Promise<AuthenticatedUser> {
+  async validateAccessToken(payload: JwtPayload, requestedInstituteId?: string): Promise<AuthenticatedUser> {
     if (payload.type !== 'access' || !payload.sub || !payload.sessionId) {
       throw new UnauthorizedException();
     }
@@ -293,9 +250,7 @@ export class AuthorizationService {
     let instituteId: string | null = null;
 
     if (requestedInstituteId) {
-      const allowed =
-        isSuperAdmin ||
-        memberships.some((item) => item.id === requestedInstituteId);
+      const allowed = isSuperAdmin || memberships.some((item) => item.id === requestedInstituteId);
 
       if (!allowed) {
         throw new ForbiddenException('Institute context is not allowed');
@@ -312,9 +267,7 @@ export class AuthorizationService {
       sessionId: session.id,
       instituteId,
       isSuperAdmin,
-      isInstituteAdmin: instituteId
-        ? await this.isInstituteAdmin(user.id, instituteId)
-        : false,
+      isInstituteAdmin: instituteId ? await this.isInstituteAdmin(user.id, instituteId) : false,
     };
   }
 
@@ -341,6 +294,16 @@ export class AuthorizationService {
     return Boolean(role);
   }
 
+  private async findStudentId(userId: string, instituteId: string): Promise<string | null> {
+    const [student] = await this.database.db
+      .select({ id: students.id })
+      .from(students)
+      .where(and(eq(students.userId, userId), eq(students.instituteId, instituteId), isNull(students.deletedAt)))
+      .limit(1);
+
+    return student?.id ?? null;
+  }
+
   private async listMemberships(userId: string) {
     return this.database.db
       .select({
@@ -350,13 +313,7 @@ export class AuthorizationService {
       })
       .from(instituteUsers)
       .innerJoin(institutes, eq(institutes.id, instituteUsers.instituteId))
-      .where(
-        and(
-          eq(instituteUsers.userId, userId),
-          isNull(institutes.deletedAt),
-          eq(institutes.isActive, true),
-        ),
-      );
+      .where(and(eq(instituteUsers.userId, userId), isNull(institutes.deletedAt), eq(institutes.isActive, true)));
   }
 
   private async listPermissionSlugs(userId: string, instituteId: string) {
@@ -373,10 +330,7 @@ export class AuthorizationService {
         and(
           eq(instituteUsers.userId, userId),
           eq(instituteUsers.instituteId, instituteId),
-          or(
-            eq(roles.instituteId, instituteId),
-            and(isNull(roles.instituteId), eq(roles.scope, 'institute')),
-          ),
+          or(eq(roles.instituteId, instituteId), and(isNull(roles.instituteId), eq(roles.scope, 'institute'))),
           eq(roles.isActive, true),
         ),
       );
@@ -384,11 +338,7 @@ export class AuthorizationService {
     return rows.map((row) => row.slug);
   }
 
-  private async createSession(
-    userId: string,
-    email: string,
-    metadata?: SessionMetadata,
-  ): Promise<TokenResponse> {
+  private async createSession(userId: string, email: string, metadata?: SessionMetadata): Promise<TokenResponse> {
     const secret = randomBytes(64).toString('base64url');
 
     const refreshTokenHash = await argon2.hash(secret);
@@ -427,12 +377,7 @@ export class AuthorizationService {
     return this.issueTokens(session.id, userId, email, secret);
   }
 
-  private async rotateSession(
-    sessionId: string,
-    userId: string,
-    email: string,
-    metadata?: SessionMetadata,
-  ): Promise<TokenResponse> {
+  private async rotateSession(sessionId: string, userId: string, email: string, metadata?: SessionMetadata): Promise<TokenResponse> {
     const secret = randomBytes(64).toString('base64url');
 
     const refreshTokenHash = await argon2.hash(secret);
@@ -453,12 +398,7 @@ export class AuthorizationService {
     return this.issueTokens(sessionId, userId, email, secret);
   }
 
-  private async issueTokens(
-    sessionId: string,
-    userId: string,
-    email: string,
-    secret: string,
-  ): Promise<TokenResponse> {
+  private async issueTokens(sessionId: string, userId: string, email: string, secret: string): Promise<TokenResponse> {
     const expiresIn = this.accessTokenTtlSeconds();
 
     const accessToken = await this.jwtService.signAsync(
@@ -488,9 +428,7 @@ export class AuthorizationService {
     const [session] = await this.database.db
       .select()
       .from(authSessions)
-      .where(
-        and(eq(authSessions.id, sessionId), isNull(authSessions.revokedAt)),
-      )
+      .where(and(eq(authSessions.id, sessionId), isNull(authSessions.revokedAt)))
       .limit(1);
 
     if (!session) {
@@ -532,16 +470,10 @@ export class AuthorizationService {
   }
 
   private refreshExpiresAt(from: Date) {
-    const configured = this.configService.get(
-      'REFRESH_TOKEN_EXPIRES_MS',
-      DEFAULT_REFRESH_TTL_MS,
-    );
+    const configured = this.configService.get('REFRESH_TOKEN_EXPIRES_MS', DEFAULT_REFRESH_TTL_MS);
 
     const duration = Number(configured);
 
-    return new Date(
-      from.getTime() +
-        (Number.isFinite(duration) ? duration : DEFAULT_REFRESH_TTL_MS),
-    );
+    return new Date(from.getTime() + (Number.isFinite(duration) ? duration : DEFAULT_REFRESH_TTL_MS));
   }
 }

@@ -10,6 +10,7 @@ import { AuthorizationModule } from './authorization/authorization.module';
 import { AcademicModule } from './academic/academic.module';
 import { InstituteModule } from './institute/institute.module';
 import { PlatformModule } from './platform/platform.module';
+import { PortalModule } from './portal/portal.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { PlatformModule } from './platform/platform.module';
     PlatformModule,
     InstituteModule,
     AcademicModule,
+    PortalModule,
   ],
   controllers: [AppController],
   providers: [AppService],

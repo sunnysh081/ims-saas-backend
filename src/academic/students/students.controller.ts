@@ -1,13 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Patch,
-  Post,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 
 import type { AuthenticatedUser } from '../../authorization/types/authorization.type';
 import { AcademicLifecycleService } from '../academic-lifecycle.service';
@@ -21,6 +12,7 @@ import {
   ChangeSectionDto,
   CreateStudentDto,
   ListStudentsQueryDto,
+  PortalAccessDto,
   UpdateStudentDto,
 } from './dto/student.dto';
 import { StudentsService } from './students.service';
@@ -111,13 +103,7 @@ export class StudentsController {
     @Body()
     dto: ChangeSectionDto,
   ) {
-    return this.lifecycle.changeSection(
-      instituteId,
-      id,
-      dto.toSectionId,
-      dto.reason,
-      user.id,
-    );
+    return this.lifecycle.changeSection(instituteId, id, dto.toSectionId, dto.reason, user.id);
   }
 
   @Post(':id/change-branch')
@@ -132,15 +118,20 @@ export class StudentsController {
     @Body()
     dto: ChangeBranchDto,
   ) {
-    return this.lifecycle.changeBranch(
-      instituteId,
-      id,
-      dto.toBranchId,
-      dto.toSectionId,
-      dto.atSemesterId,
-      dto.reason,
-      user.id,
-    );
+    return this.lifecycle.changeBranch(instituteId, id, dto.toBranchId, dto.toSectionId, dto.atSemesterId, dto.reason, user.id);
+  }
+
+  @Post(':id/portal-access')
+  @RequirePermissions('students.update')
+  enablePortalAccess(
+    @CurrentInstituteId()
+    instituteId: string,
+    @Param('id')
+    id: string,
+    @Body()
+    dto: PortalAccessDto,
+  ) {
+    return this.studentsService.enablePortalAccess(instituteId, id, dto);
   }
 
   @Get(':id')

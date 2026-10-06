@@ -148,6 +148,44 @@ const CATALOG = [
     ],
   },
   {
+    name: 'Resources',
+    slug: 'resources',
+    description: 'Learning resources attached to a subject.',
+    permissions: [
+      {
+        name: 'View resources',
+        slug: 'resources.read',
+        action: 'read' as const,
+        description: 'List institute resources.',
+      },
+      {
+        name: 'Create resources',
+        slug: 'resources.create',
+        action: 'create' as const,
+        description: 'Add resources to a subject.',
+      },
+      {
+        name: 'Update resources',
+        slug: 'resources.update',
+        action: 'update' as const,
+        description: 'Edit institute resources.',
+      },
+    ],
+  },
+  {
+    name: 'Student Portal',
+    slug: 'portal',
+    description: 'Student-facing portal access, granted to the Student role.',
+    permissions: [
+      {
+        name: 'View resources (portal)',
+        slug: 'portal.resources.read',
+        action: 'read' as const,
+        description: 'Students view resources for their own curriculum.',
+      },
+    ],
+  },
+  {
     name: 'Curriculum',
     slug: 'curriculum',
     description: 'Semester-wise subject structure for a batch.',
@@ -344,9 +382,7 @@ const CATALOG = [
   },
 ];
 
-export async function seedPermissions(
-  database: DatabaseService,
-): Promise<void> {
+export async function seedPermissions(database: DatabaseService): Promise<void> {
   for (const module of CATALOG) {
     const [existingModule] = await database.db
       .select({
@@ -387,12 +423,7 @@ export async function seedPermissions(
           id: permissions.id,
         })
         .from(permissions)
-        .where(
-          and(
-            eq(permissions.moduleId, moduleId),
-            eq(permissions.slug, permission.slug),
-          ),
-        )
+        .where(and(eq(permissions.moduleId, moduleId), eq(permissions.slug, permission.slug)))
         .limit(1);
 
       if (existingPermission) {

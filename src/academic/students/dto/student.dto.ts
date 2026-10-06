@@ -1,31 +1,15 @@
 import { Transform } from 'class-transformer';
-import {
-  IsEmail,
-  IsIn,
-  IsOptional,
-  IsString,
-  IsUUID,
-  Matches,
-  MaxLength,
-  MinLength,
-} from 'class-validator';
+import { IsEmail, IsIn, IsOptional, IsString, IsUUID, Matches, MaxLength, MinLength } from 'class-validator';
 
 import { EmptyToUndefined } from '../../../common/validation/empty-to-undefined';
-import { MOBILE_MESSAGE, MOBILE_PATTERN } from '../../../common/validation/patterns';
+import { MOBILE_MESSAGE, MOBILE_PATTERN, PASSWORD_MESSAGE, PASSWORD_PATTERN } from '../../../common/validation/patterns';
 import { PaginationDto } from '../../dto/pagination.dto';
 
-export const STUDENT_STATUSES = [
-  'ACTIVE',
-  'DETAINED',
-  'GRADUATED',
-  'DROPPED',
-] as const;
+export const STUDENT_STATUSES = ['ACTIVE', 'DETAINED', 'GRADUATED', 'DROPPED'] as const;
 
 export class CreateStudentDto {
   @EmptyToUndefined()
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.trim().toUpperCase() : value,
-  )
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim().toUpperCase() : value))
   @IsString()
   @MinLength(1)
   @MaxLength(50)
@@ -41,9 +25,7 @@ export class CreateStudentDto {
   name!: string;
 
   @EmptyToUndefined()
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.trim().toLowerCase() : value,
-  )
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim().toLowerCase() : value))
   @IsEmail()
   email!: string;
 
@@ -61,9 +43,7 @@ export class CreateStudentDto {
 export class UpdateStudentDto {
   @EmptyToUndefined()
   @IsOptional()
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.trim().toUpperCase() : value,
-  )
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim().toUpperCase() : value))
   @IsString()
   @MinLength(1)
   @MaxLength(50)
@@ -78,9 +58,7 @@ export class UpdateStudentDto {
 
   @EmptyToUndefined()
   @IsOptional()
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.trim().toLowerCase() : value,
-  )
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim().toLowerCase() : value))
   @IsEmail()
   email?: string;
 
@@ -122,6 +100,12 @@ export class ChangeSectionDto {
   @IsString()
   @MaxLength(1000)
   reason?: string;
+}
+
+export class PortalAccessDto {
+  @IsString()
+  @Matches(PASSWORD_PATTERN, { message: PASSWORD_MESSAGE })
+  password!: string;
 }
 
 export class ChangeBranchDto {

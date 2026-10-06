@@ -11,6 +11,8 @@ import { CurriculumController } from './curriculum/curriculum.controller';
 import { CurriculumService } from './curriculum/curriculum.service';
 import { EnrollmentsController } from './enrollments/enrollments.controller';
 import { EnrollmentsService } from './enrollments/enrollments.service';
+import { ResourcesController } from './resources/resources.controller';
+import { ResourcesService } from './resources/resources.service';
 import { SectionsController } from './sections/sections.controller';
 import { SectionsService } from './sections/sections.service';
 import { SemesterHistoryController } from './semester-history/semester-history.controller';
@@ -24,6 +26,7 @@ import { SubjectsController } from './subjects/subjects.controller';
 import { SubjectsService } from './subjects/subjects.service';
 import { SyllabiController } from './syllabi/syllabi.controller';
 import { SyllabiService } from './syllabi/syllabi.service';
+import { UsersService } from '../platform/users.service';
 
 @Module({
   controllers: [
@@ -35,6 +38,7 @@ import { SyllabiService } from './syllabi/syllabi.service';
     SubjectsController,
     SyllabiController,
     CurriculumController,
+    ResourcesController,
     EnrollmentsController,
     SemesterTransitionsController,
     SemesterHistoryController,
@@ -49,8 +53,10 @@ import { SyllabiService } from './syllabi/syllabi.service';
     SubjectsService,
     SyllabiService,
     CurriculumService,
+    ResourcesService,
     EnrollmentsService,
     SemesterHistoryService,
+    UsersService,
     InstituteGuard,
     PermissionGuard,
   ],

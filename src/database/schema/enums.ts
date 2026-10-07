@@ -59,3 +59,27 @@ export const resultStatusEnum = pgEnum('result_status', [
   'WITHHELD',
   'ABSENT',
 ]);
+
+export const quizTypeEnum = pgEnum('quiz_type', [
+  'CLASS_QUIZ',
+  'PRACTICE_QUIZ',
+  'UNIT_TEST',
+]);
+
+export const quizStatusEnum = pgEnum('quiz_status', ['DRAFT', 'PUBLISHED']);
+
+export const quizResultsDisplayEnum = pgEnum('quiz_results_display', [
+  'ON_PUBLISH',
+  'ON_SUBMIT',
+  'ON_CLOSE',
+]);
+
+export const quizQuestionTypeEnum = pgEnum('quiz_question_type', [
+  'MCQ_SINGLE',
+  'MCQ_MULTIPLE',
+  'SUBJECTIVE',
+  'BLANKS',
+  'MATCH',
+  'TRUE_FALSE',
+  'ESSAY',
+]);

@@ -173,6 +173,37 @@ const CATALOG = [
     ],
   },
   {
+    name: 'Quizzes',
+    slug: 'quizzes',
+    description: 'Batch-wise quizzes with a question editor.',
+    permissions: [
+      {
+        name: 'View quizzes',
+        slug: 'quizzes.read',
+        action: 'read' as const,
+        description: 'List and open institute quizzes.',
+      },
+      {
+        name: 'Create quizzes',
+        slug: 'quizzes.create',
+        action: 'create' as const,
+        description: 'Create draft or published quizzes.',
+      },
+      {
+        name: 'Update quizzes',
+        slug: 'quizzes.update',
+        action: 'update' as const,
+        description: 'Edit, publish or unpublish quizzes.',
+      },
+      {
+        name: 'Delete quizzes',
+        slug: 'quizzes.delete',
+        action: 'delete' as const,
+        description: 'Delete quizzes.',
+      },
+    ],
+  },
+  {
     name: 'Student Portal',
     slug: 'portal',
     description: 'Student-facing portal access, granted to the Student role.',

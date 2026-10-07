@@ -11,6 +11,8 @@ import { CurriculumController } from './curriculum/curriculum.controller';
 import { CurriculumService } from './curriculum/curriculum.service';
 import { EnrollmentsController } from './enrollments/enrollments.controller';
 import { EnrollmentsService } from './enrollments/enrollments.service';
+import { QuizzesController } from './quizzes/quizzes.controller';
+import { QuizzesService } from './quizzes/quizzes.service';
 import { ResourcesController } from './resources/resources.controller';
 import { ResourcesService } from './resources/resources.service';
 import { SectionsController } from './sections/sections.controller';
@@ -39,6 +41,7 @@ import { UsersService } from '../platform/users.service';
     SyllabiController,
     CurriculumController,
     ResourcesController,
+    QuizzesController,
     EnrollmentsController,
     SemesterTransitionsController,
     SemesterHistoryController,
@@ -54,6 +57,7 @@ import { UsersService } from '../platform/users.service';
     SyllabiService,
     CurriculumService,
     ResourcesService,
+    QuizzesService,
     EnrollmentsService,
     SemesterHistoryService,
     UsersService,

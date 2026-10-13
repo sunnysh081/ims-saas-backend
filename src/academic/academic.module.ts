@@ -11,6 +11,7 @@ import { CurriculumController } from './curriculum/curriculum.controller';
 import { CurriculumService } from './curriculum/curriculum.service';
 import { EnrollmentsController } from './enrollments/enrollments.controller';
 import { EnrollmentsService } from './enrollments/enrollments.service';
+import { QuizAttemptsService } from './quizzes/quiz-attempts.service';
 import { QuizzesController } from './quizzes/quizzes.controller';
 import { QuizzesService } from './quizzes/quizzes.service';
 import { ResourcesController } from './resources/resources.controller';
@@ -58,6 +59,7 @@ import { UsersService } from '../platform/users.service';
     CurriculumService,
     ResourcesService,
     QuizzesService,
+    QuizAttemptsService,
     EnrollmentsService,
     SemesterHistoryService,
     UsersService,

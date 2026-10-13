@@ -38,6 +38,13 @@ export class CreateStudentDto {
   @IsOptional()
   @IsIn(STUDENT_STATUSES)
   status?: (typeof STUDENT_STATUSES)[number];
+
+  // When set, a login user (Student role) is created for the student at the same time.
+  @EmptyToUndefined()
+  @IsOptional()
+  @IsString()
+  @Matches(PASSWORD_PATTERN, { message: PASSWORD_MESSAGE })
+  password?: string;
 }
 
 export class UpdateStudentDto {

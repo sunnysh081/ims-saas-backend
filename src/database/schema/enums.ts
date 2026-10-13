@@ -83,3 +83,8 @@ export const quizQuestionTypeEnum = pgEnum('quiz_question_type', [
   'TRUE_FALSE',
   'ESSAY',
 ]);
+
+export const quizAttemptStatusEnum = pgEnum('quiz_attempt_status', [
+  'IN_PROGRESS',
+  'SUBMITTED',
+]);

@@ -4,13 +4,17 @@ import { RequirePermissions } from '../../common/auth/permissions.decorator';
 import { CurrentInstituteId } from '../../common/decorators/current-institute.decorator';
 import { InstituteGuard } from '../../common/guards/institute.guard';
 import { PermissionGuard } from '../../common/guards/permissions.guards';
-import { CreateQuizDto, ListQuizzesQueryDto, UpdateQuizDto } from './dto/quiz.dto';
+import { CreateQuizDto, GradeAttemptDto, ListQuizzesQueryDto, SetScoresPublishedDto, UpdateQuizDto } from './dto/quiz.dto';
+import { QuizAttemptsService } from './quiz-attempts.service';
 import { QuizzesService } from './quizzes.service';
 
 @Controller('institute/quizzes')
 @UseGuards(InstituteGuard, PermissionGuard)
 export class QuizzesController {
-  constructor(private readonly quizzesService: QuizzesService) {}
+  constructor(
+    private readonly quizzesService: QuizzesService,
+    private readonly quizAttemptsService: QuizAttemptsService,
+  ) {}
 
   @Get()
   @RequirePermissions('quizzes.read')
@@ -40,5 +44,42 @@ export class QuizzesController {
   @RequirePermissions('quizzes.delete')
   remove(@CurrentInstituteId() instituteId: string, @Param('id') id: string) {
     return this.quizzesService.remove(instituteId, id);
+  }
+
+  @Get(':id/attempts')
+  @RequirePermissions('quizzes.read')
+  listAttempts(@CurrentInstituteId() instituteId: string, @Param('id') id: string) {
+    return this.quizAttemptsService.list(instituteId, id);
+  }
+
+  @Get(':id/attempts/:attemptId')
+  @RequirePermissions('quizzes.read')
+  findAttempt(
+    @CurrentInstituteId() instituteId: string,
+    @Param('id') id: string,
+    @Param('attemptId') attemptId: string,
+  ) {
+    return this.quizAttemptsService.findOne(instituteId, id, attemptId);
+  }
+
+  @Patch(':id/attempts/:attemptId/grade')
+  @RequirePermissions('quizzes.update')
+  gradeAttempt(
+    @CurrentInstituteId() instituteId: string,
+    @Param('id') id: string,
+    @Param('attemptId') attemptId: string,
+    @Body() dto: GradeAttemptDto,
+  ) {
+    return this.quizAttemptsService.grade(instituteId, id, attemptId, dto);
+  }
+
+  @Patch(':id/scores')
+  @RequirePermissions('quizzes.update')
+  setScoresPublished(
+    @CurrentInstituteId() instituteId: string,
+    @Param('id') id: string,
+    @Body() dto: SetScoresPublishedDto,
+  ) {
+    return this.quizAttemptsService.setScoresPublished(instituteId, id, dto.published);
   }
 }

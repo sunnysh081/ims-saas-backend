@@ -227,3 +227,26 @@ export class ListQuizzesQueryDto {
   @IsIn(QUIZ_STATUSES)
   status?: (typeof QUIZ_STATUSES)[number];
 }
+
+export class QuestionGradeDto {
+  @IsUUID('4')
+  questionId!: string;
+
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(1000)
+  marks!: number;
+}
+
+export class GradeAttemptDto {
+  @IsArray()
+  @ArrayMaxSize(200)
+  @ValidateNested({ each: true })
+  @Type(() => QuestionGradeDto)
+  grades!: QuestionGradeDto[];
+}
+
+export class SetScoresPublishedDto {
+  @IsBoolean()
+  published!: boolean;
+}

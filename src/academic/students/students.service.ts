@@ -16,6 +16,7 @@ import {
   semesters,
   studentEnrollments,
   students,
+  users,
 } from '../../database/schema';
 import { CreateStudentDto, ListStudentsQueryDto, PortalAccessDto, UpdateStudentDto } from './dto/student.dto';
 
@@ -82,6 +83,7 @@ export class StudentsService {
         email: students.email,
         phone: students.phone,
         status: students.status,
+        userId: students.userId,
         createdAt: students.createdAt,
         updatedAt: students.updatedAt,
         enrollmentId: studentEnrollments.id,
@@ -142,19 +144,42 @@ export class StudentsService {
 
     await this.assertUnique(instituteId, rollNumber, email);
 
-    const [created] = await this.database.db
-      .insert(students)
-      .values({
-        instituteId,
-        rollNumber,
-        name: dto.name,
-        email,
-        phone: dto.phone,
-        status: dto.status ?? 'ACTIVE',
-      })
-      .returning({
-        id: students.id,
-      });
+    // Creating the login first means a duplicate email fails before any student row exists.
+    const loginUserId = dto.password
+      ? (
+          await this.usersService.createInstituteUser(instituteId, {
+            email,
+            password: dto.password,
+            firstName: dto.name,
+            roleIds: [await this.requireStudentRole()],
+          })
+        ).id
+      : undefined;
+
+    let created: { id: string } | undefined;
+
+    try {
+      [created] = await this.database.db
+        .insert(students)
+        .values({
+          instituteId,
+          rollNumber,
+          name: dto.name,
+          email,
+          phone: dto.phone,
+          status: dto.status ?? 'ACTIVE',
+          userId: loginUserId,
+        })
+        .returning({
+          id: students.id,
+        });
+    } catch (error) {
+      if (loginUserId) {
+        await this.database.db.delete(users).where(eq(users.id, loginUserId));
+      }
+
+      throw error;
+    }
 
     if (!created) {
       throw new BadRequestException('Failed to create student');

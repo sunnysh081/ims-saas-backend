@@ -217,6 +217,38 @@ const CATALOG = [
     ],
   },
   {
+    name: 'Student Profile',
+    slug: 'portal-profile',
+    description: 'Students viewing their own profile in the portal.',
+    permissions: [
+      {
+        name: 'View own profile (portal)',
+        slug: 'portal.profile.read',
+        action: 'read' as const,
+        description: 'Students view their own profile and enrollment.',
+      },
+    ],
+  },
+  {
+    name: 'Student Quizzes',
+    slug: 'portal-quizzes',
+    description: 'Students viewing and attempting their own quizzes.',
+    permissions: [
+      {
+        name: 'View quizzes (portal)',
+        slug: 'portal.quizzes.read',
+        action: 'read' as const,
+        description: 'Students see quizzes for their own curriculum and their results.',
+      },
+      {
+        name: 'Attempt quizzes (portal)',
+        slug: 'portal.quizzes.attempt',
+        action: 'create' as const,
+        description: 'Students start and submit quiz attempts.',
+      },
+    ],
+  },
+  {
     name: 'Curriculum',
     slug: 'curriculum',
     description: 'Semester-wise subject structure for a batch.',

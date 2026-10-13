@@ -7,18 +7,21 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
 
 import { batches } from './batches.schema';
 import {
+  quizAttemptStatusEnum,
   quizQuestionTypeEnum,
   quizResultsDisplayEnum,
   quizStatusEnum,
   quizTypeEnum,
 } from './enums';
 import { institutes } from './institutes.schema';
+import { students } from './students.schema';
 import { subjects } from './subjects.schema';
 import { syllabusUnits } from './syllabus-units.schema';
 
@@ -75,6 +78,9 @@ export const quizzes = pgTable(
     status: quizStatusEnum('status').notNull().default('DRAFT'),
 
     publishedAt: timestamp('published_at', { withTimezone: true }),
+
+    // Set when staff publish scores (used by the "scores are published by me" option).
+    scoresPublishedAt: timestamp('scores_published_at', { withTimezone: true }),
 
     createdAt: timestamp('created_at', { withTimezone: true })
       .defaultNow()
@@ -142,4 +148,74 @@ export const quizQuestions = pgTable(
       .notNull(),
   },
   (table) => [index('quiz_questions_quiz_id_idx').on(table.quizId)],
+);
+
+// One attempt per student per quiz.
+export const quizAttempts = pgTable(
+  'quiz_attempts',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+
+    instituteId: uuid('institute_id')
+      .notNull()
+      .references(() => institutes.id, { onDelete: 'cascade' }),
+
+    quizId: uuid('quiz_id')
+      .notNull()
+      .references(() => quizzes.id, { onDelete: 'cascade' }),
+
+    studentId: uuid('student_id')
+      .notNull()
+      .references(() => students.id, { onDelete: 'cascade' }),
+
+    status: quizAttemptStatusEnum('status').notNull().default('IN_PROGRESS'),
+
+    startedAt: timestamp('started_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+
+    // Latest moment answers are accepted (timer end or quiz close, whichever is first).
+    deadlineAt: timestamp('deadline_at', { withTimezone: true }),
+
+    submittedAt: timestamp('submitted_at', { withTimezone: true }),
+
+    score: numeric('score', { precision: 8, scale: 2 }),
+
+    totalMarks: numeric('total_marks', { precision: 8, scale: 2 }),
+
+    // True while subjective/essay answers still need marks from staff.
+    pendingManual: boolean('pending_manual').notNull().default(false),
+
+    timedOut: boolean('timed_out').notNull().default(false),
+  },
+  (table) => [
+    uniqueIndex('quiz_attempts_quiz_student_unique').on(table.quizId, table.studentId),
+    index('quiz_attempts_quiz_id_idx').on(table.quizId),
+    index('quiz_attempts_student_id_idx').on(table.studentId),
+  ],
+);
+
+export const quizAttemptAnswers = pgTable(
+  'quiz_attempt_answers',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+
+    attemptId: uuid('attempt_id')
+      .notNull()
+      .references(() => quizAttempts.id, { onDelete: 'cascade' }),
+
+    questionId: uuid('question_id')
+      .notNull()
+      .references(() => quizQuestions.id, { onDelete: 'cascade' }),
+
+    // Shape depends on the question type; see PortalQuizzesService.
+    answer: jsonb('answer'),
+
+    marksAwarded: numeric('marks_awarded', { precision: 6, scale: 2 }),
+
+    isCorrect: boolean('is_correct'),
+  },
+  (table) => [
+    uniqueIndex('quiz_attempt_answers_attempt_question_unique').on(table.attemptId, table.questionId),
+  ],
 );

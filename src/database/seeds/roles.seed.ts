@@ -26,7 +26,7 @@ const SYSTEM_ROLES = [
 
 // Granted to the Student system role directly (students don't get an
 // institute-admin-style permission bypass, so this has to be explicit).
-const STUDENT_PERMISSION_SLUGS = ['portal.resources.read'];
+const STUDENT_PERMISSION_SLUGS = ['portal.resources.read', 'portal.profile.read', 'portal.quizzes.read', 'portal.quizzes.attempt'];
 
 export async function seedSystemRoles(database: DatabaseService): Promise<void> {
   for (const role of SYSTEM_ROLES) {

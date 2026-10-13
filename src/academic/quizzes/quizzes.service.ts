@@ -8,6 +8,7 @@ import {
   batches,
   curriculumPlans,
   programs,
+  quizAttempts,
   quizQuestions,
   quizzes,
   subjects,
@@ -44,8 +45,10 @@ const quizSelection = {
   resultsDisplay: quizzes.resultsDisplay,
   status: quizzes.status,
   publishedAt: quizzes.publishedAt,
+  scoresPublishedAt: quizzes.scoresPublishedAt,
   createdAt: quizzes.createdAt,
   updatedAt: quizzes.updatedAt,
+  attemptCount: sql<number>`(select count(*)::int from ${quizAttempts} where ${quizAttempts.quizId} = ${quizzes.id} and ${quizAttempts.status} = 'SUBMITTED')`,
   questionCount: sql<number>`(select count(*)::int from ${quizQuestions} where ${quizQuestions.quizId} = ${quizzes.id})`,
   totalMarks: sql<number>`(select coalesce(sum(${quizQuestions.maxMarks}), 0)::float8 from ${quizQuestions} where ${quizQuestions.quizId} = ${quizzes.id})`,
 };
@@ -187,6 +190,21 @@ export class QuizzesService {
 
     const questionRows = dto.questions.map((question) => this.toQuestionValues(question, publish));
 
+    const questionsUnchanged = this.sameQuestions(existing.questions, questionRows);
+
+    if (!questionsUnchanged) {
+      const [{ count }] = await this.database.db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(quizAttempts)
+        .where(eq(quizAttempts.quizId, id));
+
+      if (count > 0) {
+        throw new BadRequestException(
+          'Students have already attempted this quiz, so its questions can no longer be changed. Other settings can still be edited.',
+        );
+      }
+    }
+
     await this.database.db.transaction(async (tx) => {
       await tx
         .update(quizzes)
@@ -197,8 +215,10 @@ export class QuizzesService {
         })
         .where(eq(quizzes.id, id));
 
-      await tx.delete(quizQuestions).where(eq(quizQuestions.quizId, id));
-      await this.insertQuestions(tx, id, questionRows);
+      if (!questionsUnchanged) {
+        await tx.delete(quizQuestions).where(eq(quizQuestions.quizId, id));
+        await this.insertQuestions(tx, id, questionRows);
+      }
     });
 
     return this.findOne(instituteId, id);
@@ -213,6 +233,65 @@ export class QuizzesService {
       .where(eq(quizzes.id, id));
 
     return { id };
+  }
+
+  private sameQuestions(
+    current: Awaited<ReturnType<QuizzesService['findOne']>>['questions'],
+    next: ReturnType<QuizzesService['toQuestionValues']>[],
+  ) {
+    const normalize = (question: {
+      type: string;
+      text: string;
+      maxMarks: number;
+      allowNegativeMarking: boolean;
+      negativeMarks: number;
+      courseOutcomes: string[];
+      btLevel: string | null;
+      topicOutcomes: string[];
+      answerData: unknown;
+    }) => JSON.stringify(question);
+
+    return (
+      current.length === next.length &&
+      current.every((question, index) => {
+        const other = next[index]!;
+
+        return (
+          normalize({
+            type: question.type,
+            text: question.text,
+            maxMarks: question.maxMarks,
+            allowNegativeMarking: question.allowNegativeMarking,
+            negativeMarks: question.allowNegativeMarking ? question.negativeMarks : 0,
+            courseOutcomes: question.courseOutcomes,
+            btLevel: question.btLevel,
+            topicOutcomes: question.topicOutcomes,
+            answerData: {
+              options: question.options,
+              correct: question.correct,
+              blanks: question.blanks,
+              pairs: question.pairs,
+            },
+          }) ===
+          normalize({
+            type: other.type,
+            text: other.text,
+            maxMarks: Number(other.maxMarks),
+            allowNegativeMarking: other.allowNegativeMarking,
+            negativeMarks: Number(other.negativeMarks),
+            courseOutcomes: other.courseOutcomes,
+            btLevel: other.btLevel,
+            topicOutcomes: other.topicOutcomes,
+            answerData: {
+              options: (other.answerData as { options?: unknown }).options,
+              correct: (other.answerData as { correct?: unknown }).correct,
+              blanks: (other.answerData as { blanks?: unknown }).blanks,
+              pairs: (other.answerData as { pairs?: unknown }).pairs,
+            },
+          })
+        );
+      })
+    );
   }
 
   private quizValues(dto: QuizBodyDto) {

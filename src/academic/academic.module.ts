@@ -3,6 +3,8 @@ import { Module } from '@nestjs/common';
 import { InstituteGuard } from '../common/guards/institute.guard';
 import { PermissionGuard } from '../common/guards/permissions.guards';
 import { AcademicLifecycleService } from './academic-lifecycle.service';
+import { AssignmentsController } from './assignments/assignments.controller';
+import { AssignmentsService } from './assignments/assignments.service';
 import { BatchesController } from './batches/batches.controller';
 import { BatchesService } from './batches/batches.service';
 import { BranchesController } from './branches/branches.controller';
@@ -11,6 +13,7 @@ import { CurriculumController } from './curriculum/curriculum.controller';
 import { CurriculumService } from './curriculum/curriculum.service';
 import { EnrollmentsController } from './enrollments/enrollments.controller';
 import { EnrollmentsService } from './enrollments/enrollments.service';
+import { LmsScopeService } from './lms-scope.service';
 import { QuizAttemptsService } from './quizzes/quiz-attempts.service';
 import { QuizzesController } from './quizzes/quizzes.controller';
 import { QuizzesService } from './quizzes/quizzes.service';
@@ -43,6 +46,7 @@ import { UsersService } from '../platform/users.service';
     CurriculumController,
     ResourcesController,
     QuizzesController,
+    AssignmentsController,
     EnrollmentsController,
     SemesterTransitionsController,
     SemesterHistoryController,
@@ -60,6 +64,8 @@ import { UsersService } from '../platform/users.service';
     ResourcesService,
     QuizzesService,
     QuizAttemptsService,
+    AssignmentsService,
+    LmsScopeService,
     EnrollmentsService,
     SemesterHistoryService,
     UsersService,

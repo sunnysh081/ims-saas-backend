@@ -237,6 +237,9 @@ export class UsersService {
       operation: 'users.update',
       resource: 'user',
       resourceId: id,
+      actorId,
+      passwordChanged: Boolean(dto.password),
+      emailChanged: Boolean(dto.email),
     });
 
     return this.getUser(current.id);

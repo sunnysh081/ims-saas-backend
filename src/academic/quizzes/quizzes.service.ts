@@ -1,19 +1,17 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
-import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 
 import { AppLogger } from '../../common/logging/logger.service';
 import { DatabaseService } from '../../database/database.service';
+import { LmsScopeService } from '../lms-scope.service';
 import {
   batches,
-  curriculumPlans,
   programs,
   quizAttempts,
   quizQuestions,
   quizzes,
   subjects,
-  syllabi,
-  syllabusUnits,
 } from '../../database/schema';
 import { CreateQuizDto, ListQuizzesQueryDto, QuizBodyDto, QuizQuestionDto, UpdateQuizDto } from './dto/quiz.dto';
 
@@ -58,6 +56,7 @@ export class QuizzesService {
   constructor(
     private readonly database: DatabaseService,
     private readonly logger: AppLogger,
+    private readonly scope: LmsScopeService,
   ) {}
 
   async findAll(instituteId: string, query: ListQuizzesQueryDto) {
@@ -136,15 +135,15 @@ export class QuizzesService {
     const publish = dto.status === 'PUBLISHED';
     this.validateBody(dto, publish);
 
-    const batch = await this.requireBatch(instituteId, dto.batchId);
-    await this.requireCurriculumPairing(instituteId, dto.batchId, dto.subjectId);
-    await this.requireSyllabusUnit(instituteId, dto.syllabusUnitId, dto.batchId, dto.subjectId);
+    const batch = await this.scope.requireBatch(instituteId, dto.batchId);
+    await this.scope.requireCurriculumPairing(instituteId, dto.batchId, dto.subjectId);
+    await this.scope.requireSyllabusUnit(instituteId, dto.syllabusUnitId, dto.batchId, dto.subjectId);
 
     const copyTargets = [...new Set(dto.copyToBatchIds ?? [])].filter((id) => id !== dto.batchId);
 
     for (const targetBatchId of copyTargets) {
-      await this.requireBatch(instituteId, targetBatchId);
-      await this.requireCurriculumPairing(instituteId, targetBatchId, dto.subjectId);
+      await this.scope.requireBatch(instituteId, targetBatchId);
+      await this.scope.requireCurriculumPairing(instituteId, targetBatchId, dto.subjectId);
     }
 
     const questionRows = dto.questions.map((question) => this.toQuestionValues(question, publish));
@@ -186,7 +185,7 @@ export class QuizzesService {
     const publish = dto.status === 'PUBLISHED';
 
     this.validateBody(dto, publish);
-    await this.requireSyllabusUnit(instituteId, dto.syllabusUnitId, existing.batchId, existing.subjectId);
+    await this.scope.requireSyllabusUnit(instituteId, dto.syllabusUnitId, existing.batchId, existing.subjectId);
 
     const questionRows = dto.questions.map((question) => this.toQuestionValues(question, publish));
 
@@ -463,68 +462,5 @@ export class QuizzesService {
       negativeMarks: negative ? (question.negativeMarks ?? 0).toFixed(2) : '0',
       answerData,
     };
-  }
-
-  private async requireBatch(instituteId: string, batchId: string) {
-    const [batch] = await this.database.db
-      .select({ id: batches.id, programId: batches.programId })
-      .from(batches)
-      .where(and(eq(batches.id, batchId), eq(batches.instituteId, instituteId), isNull(batches.deletedAt)))
-      .limit(1);
-
-    if (!batch) {
-      throw new NotFoundException('Batch not found');
-    }
-
-    return batch;
-  }
-
-  private async requireCurriculumPairing(instituteId: string, batchId: string, subjectId: string) {
-    const [plan] = await this.database.db
-      .select({ id: curriculumPlans.id })
-      .from(curriculumPlans)
-      .where(
-        and(
-          eq(curriculumPlans.instituteId, instituteId),
-          eq(curriculumPlans.batchId, batchId),
-          eq(curriculumPlans.subjectId, subjectId),
-          isNull(curriculumPlans.deletedAt),
-        ),
-      )
-      .limit(1);
-
-    if (!plan) {
-      throw new BadRequestException("This subject is not in the batch's curriculum. Add it on the Curriculum page first.");
-    }
-  }
-
-  private async requireSyllabusUnit(
-    instituteId: string,
-    unitId: string | undefined,
-    batchId: string,
-    subjectId: string,
-  ) {
-    if (!unitId) {
-      return;
-    }
-
-    const [unit] = await this.database.db
-      .select({ id: syllabusUnits.id })
-      .from(syllabusUnits)
-      .innerJoin(syllabi, eq(syllabi.id, syllabusUnits.syllabusId))
-      .where(
-        and(
-          eq(syllabusUnits.id, unitId),
-          eq(syllabi.instituteId, instituteId),
-          eq(syllabi.batchId, batchId),
-          eq(syllabi.subjectId, subjectId),
-          isNull(syllabi.deletedAt),
-        ),
-      )
-      .limit(1);
-
-    if (!unit) {
-      throw new BadRequestException("The selected unit is not part of this batch's syllabus for the subject");
-    }
   }
 }

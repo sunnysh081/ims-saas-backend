@@ -249,6 +249,56 @@ const CATALOG = [
     ],
   },
   {
+    name: 'Assignments',
+    slug: 'assignments',
+    description: 'Batch-wise assignments with submissions and grading.',
+    permissions: [
+      {
+        name: 'View assignments',
+        slug: 'assignments.read',
+        action: 'read' as const,
+        description: 'List assignments and their submissions.',
+      },
+      {
+        name: 'Create assignments',
+        slug: 'assignments.create',
+        action: 'create' as const,
+        description: 'Create draft or published assignments.',
+      },
+      {
+        name: 'Update assignments',
+        slug: 'assignments.update',
+        action: 'update' as const,
+        description: 'Edit, publish and grade assignments.',
+      },
+      {
+        name: 'Delete assignments',
+        slug: 'assignments.delete',
+        action: 'delete' as const,
+        description: 'Delete assignments.',
+      },
+    ],
+  },
+  {
+    name: 'Student Assignments',
+    slug: 'portal-assignments',
+    description: 'Students viewing and submitting their own assignments.',
+    permissions: [
+      {
+        name: 'View assignments (portal)',
+        slug: 'portal.assignments.read',
+        action: 'read' as const,
+        description: 'Students see assignments for their own curriculum and their grades.',
+      },
+      {
+        name: 'Submit assignments (portal)',
+        slug: 'portal.assignments.submit',
+        action: 'create' as const,
+        description: 'Students submit their own work online.',
+      },
+    ],
+  },
+  {
     name: 'Curriculum',
     slug: 'curriculum',
     description: 'Semester-wise subject structure for a batch.',

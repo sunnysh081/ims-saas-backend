@@ -5,16 +5,13 @@ import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { type GradableQuestion, gradeQuestion, reviewQuestions, sanitizeAnswer, seededShuffle } from '../../academic/quizzes/quiz-grading';
 import { DatabaseService } from '../../database/database.service';
 import {
-  curriculumPlans,
   quizAttemptAnswers,
   quizAttempts,
   quizQuestions,
   quizzes,
-  sections,
-  studentEnrollments,
-  students,
   subjects,
 } from '../../database/schema';
+import { PortalStudentScopeService } from '../portal-student-scope.service';
 import { SubmitQuizDto } from './dto/portal-quiz.dto';
 
 // Answers arriving slightly after the deadline are still accepted (network delay, clock drift).
@@ -25,10 +22,13 @@ type AttemptRow = typeof quizAttempts.$inferSelect;
 
 @Injectable()
 export class PortalQuizzesService {
-  constructor(private readonly database: DatabaseService) {}
+  constructor(
+    private readonly database: DatabaseService,
+    private readonly studentScope: PortalStudentScopeService,
+  ) {}
 
   async list(instituteId: string, userId: string) {
-    const scope = await this.scopeFor(instituteId, userId);
+    const scope = await this.studentScope.scopeFor(instituteId, userId);
 
     if (!scope.subjectIds.length) {
       return [];
@@ -73,7 +73,7 @@ export class PortalQuizzesService {
   }
 
   async detail(instituteId: string, userId: string, quizId: string) {
-    const scope = await this.scopeFor(instituteId, userId);
+    const scope = await this.studentScope.scopeFor(instituteId, userId);
     const quiz = await this.requireVisibleQuiz(instituteId, scope, quizId);
     const attempt = await this.findAttempt(quizId, scope.studentId);
     const [meta] = await this.database.db
@@ -100,7 +100,7 @@ export class PortalQuizzesService {
   }
 
   async start(instituteId: string, userId: string, quizId: string) {
-    const scope = await this.scopeFor(instituteId, userId);
+    const scope = await this.studentScope.scopeFor(instituteId, userId);
     const quiz = await this.requireVisibleQuiz(instituteId, scope, quizId);
     const existing = await this.findAttempt(quizId, scope.studentId);
 
@@ -157,7 +157,7 @@ export class PortalQuizzesService {
   }
 
   async currentAttempt(instituteId: string, userId: string, quizId: string) {
-    const scope = await this.scopeFor(instituteId, userId);
+    const scope = await this.studentScope.scopeFor(instituteId, userId);
     const quiz = await this.requireVisibleQuiz(instituteId, scope, quizId);
     const attempt = await this.findAttempt(quizId, scope.studentId);
 
@@ -174,7 +174,7 @@ export class PortalQuizzesService {
   }
 
   async submit(instituteId: string, userId: string, quizId: string, dto: SubmitQuizDto) {
-    const scope = await this.scopeFor(instituteId, userId);
+    const scope = await this.studentScope.scopeFor(instituteId, userId);
     const quiz = await this.requireVisibleQuiz(instituteId, scope, quizId);
     const attempt = await this.findAttempt(quizId, scope.studentId);
 
@@ -193,7 +193,7 @@ export class PortalQuizzesService {
   }
 
   async result(instituteId: string, userId: string, quizId: string) {
-    const scope = await this.scopeFor(instituteId, userId);
+    const scope = await this.studentScope.scopeFor(instituteId, userId);
     const quiz = await this.requireVisibleQuiz(instituteId, scope, quizId);
     const attempt = await this.findAttempt(quizId, scope.studentId);
 
@@ -431,52 +431,5 @@ export class PortalQuizzesService {
     }
 
     return quiz;
-  }
-
-  // The student is always derived from the logged-in user, never from the request.
-  private async scopeFor(instituteId: string, userId: string) {
-    const [student] = await this.database.db
-      .select({ id: students.id })
-      .from(students)
-      .where(and(eq(students.userId, userId), eq(students.instituteId, instituteId), isNull(students.deletedAt)))
-      .limit(1);
-
-    if (!student) {
-      throw new ForbiddenException('No student profile linked to this account');
-    }
-
-    const [enrollment] = await this.database.db
-      .select({ semesterId: studentEnrollments.semesterId, batchId: sections.batchId })
-      .from(studentEnrollments)
-      .innerJoin(sections, eq(sections.id, studentEnrollments.sectionId))
-      .where(
-        and(
-          eq(studentEnrollments.studentId, student.id),
-          eq(studentEnrollments.instituteId, instituteId),
-          eq(studentEnrollments.active, true),
-        ),
-      )
-      .limit(1);
-
-    if (!enrollment) {
-      return { studentId: student.id, batchId: '', subjectIds: [] as string[] };
-    }
-
-    const plans = await this.database.db
-      .select({ subjectId: curriculumPlans.subjectId })
-      .from(curriculumPlans)
-      .where(
-        and(
-          eq(curriculumPlans.batchId, enrollment.batchId),
-          eq(curriculumPlans.semesterId, enrollment.semesterId),
-          isNull(curriculumPlans.deletedAt),
-        ),
-      );
-
-    return {
-      studentId: student.id,
-      batchId: enrollment.batchId,
-      subjectIds: plans.map((plan) => plan.subjectId),
-    };
   }
 }

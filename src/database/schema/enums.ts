@@ -88,3 +88,16 @@ export const quizAttemptStatusEnum = pgEnum('quiz_attempt_status', [
   'IN_PROGRESS',
   'SUBMITTED',
 ]);
+
+export const assignmentTypeEnum = pgEnum('assignment_type', [
+  'CLASS_ASSIGNMENT',
+  'HOME_ASSIGNMENT',
+  'LAB_ASSIGNMENT',
+]);
+
+export const assignmentStatusEnum = pgEnum('assignment_status', ['DRAFT', 'PUBLISHED']);
+
+export const assignmentSubmissionTypeEnum = pgEnum('assignment_submission_type', [
+  'PHYSICAL',
+  'ONLINE',
+]);

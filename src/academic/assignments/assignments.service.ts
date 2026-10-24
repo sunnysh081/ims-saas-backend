@@ -215,7 +215,7 @@ export class AssignmentsService {
 
   async submissionDetail(instituteId: string, id: string, studentId: string) {
     const assignment = await this.findOne(instituteId, id);
-    const student = await this.requireRosterStudent(instituteId, assignment.batchId, studentId);
+    const student = await this.scope.requireRosterStudent(instituteId, assignment.batchId, studentId);
 
     const [submission] = await this.database.db
       .select({
@@ -237,7 +237,7 @@ export class AssignmentsService {
 
   async grade(instituteId: string, id: string, studentId: string, dto: GradeSubmissionDto) {
     const assignment = await this.findOne(instituteId, id);
-    await this.requireRosterStudent(instituteId, assignment.batchId, studentId);
+    await this.scope.requireRosterStudent(instituteId, assignment.batchId, studentId);
 
     let marks: number;
     let rubricMarks: number[] | null = null;
@@ -359,23 +359,5 @@ export class AssignmentsService {
     }
 
     return created.id;
-  }
-
-  private async requireRosterStudent(instituteId: string, batchId: string, studentId: string) {
-    const [student] = await this.database.db
-      .select({ id: students.id, name: students.name, rollNumber: students.rollNumber })
-      .from(students)
-      .innerJoin(studentEnrollments, and(eq(studentEnrollments.studentId, students.id), eq(studentEnrollments.active, true)))
-      .innerJoin(sections, eq(sections.id, studentEnrollments.sectionId))
-      .where(
-        and(eq(students.id, studentId), eq(students.instituteId, instituteId), isNull(students.deletedAt), eq(sections.batchId, batchId)),
-      )
-      .limit(1);
-
-    if (!student) {
-      throw new NotFoundException('Student is not in this assignment’s batch');
-    }
-
-    return student;
   }
 }

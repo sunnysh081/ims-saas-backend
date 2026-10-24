@@ -17,6 +17,8 @@ export * from './subject-outcomes.schema';
 export * from './resources.schema';
 export * from './quizzes.schema';
 export * from './assignments.schema';
+export * from './activities.schema';
+export * from './attendance.schema';
 export * from './syllabi.schema';
 export * from './syllabus-units.schema';
 export * from './branches.schema';

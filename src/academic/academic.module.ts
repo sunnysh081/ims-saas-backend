@@ -3,6 +3,13 @@ import { Module } from '@nestjs/common';
 import { InstituteGuard } from '../common/guards/institute.guard';
 import { PermissionGuard } from '../common/guards/permissions.guards';
 import { AcademicLifecycleService } from './academic-lifecycle.service';
+import { ActivitiesController } from './activities/activities.controller';
+import { ActivitiesService } from './activities/activities.service';
+import { AttendanceController } from './attendance/attendance.controller';
+import { AttendanceCoreService } from './attendance/attendance-core.service';
+import { AttendanceService } from './attendance/attendance.service';
+import { MergeController } from './attendance/merge.controller';
+import { MergeService } from './attendance/merge.service';
 import { AssignmentsController } from './assignments/assignments.controller';
 import { AssignmentsService } from './assignments/assignments.service';
 import { BatchesController } from './batches/batches.controller';
@@ -47,6 +54,9 @@ import { UsersService } from '../platform/users.service';
     ResourcesController,
     QuizzesController,
     AssignmentsController,
+    ActivitiesController,
+    AttendanceController,
+    MergeController,
     EnrollmentsController,
     SemesterTransitionsController,
     SemesterHistoryController,
@@ -65,6 +75,10 @@ import { UsersService } from '../platform/users.service';
     QuizzesService,
     QuizAttemptsService,
     AssignmentsService,
+    ActivitiesService,
+    AttendanceCoreService,
+    AttendanceService,
+    MergeService,
     LmsScopeService,
     EnrollmentsService,
     SemesterHistoryService,

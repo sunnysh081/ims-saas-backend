@@ -299,6 +299,113 @@ const CATALOG = [
     ],
   },
   {
+    name: 'Activities',
+    slug: 'activities',
+    description: 'Discussions, polls and practicals for a batch.',
+    permissions: [
+      {
+        name: 'View activities',
+        slug: 'activities.read',
+        action: 'read' as const,
+        description: 'List activities and their participation.',
+      },
+      {
+        name: 'Create activities',
+        slug: 'activities.create',
+        action: 'create' as const,
+        description: 'Create draft or published activities.',
+      },
+      {
+        name: 'Update activities',
+        slug: 'activities.update',
+        action: 'update' as const,
+        description: 'Edit activities, moderate discussions and record practicals.',
+      },
+      {
+        name: 'Delete activities',
+        slug: 'activities.delete',
+        action: 'delete' as const,
+        description: 'Delete activities.',
+      },
+    ],
+  },
+  {
+    name: 'Student Activities',
+    slug: 'portal-activities',
+    description: 'Students joining discussions, polls and practicals.',
+    permissions: [
+      {
+        name: 'View activities (portal)',
+        slug: 'portal.activities.read',
+        action: 'read' as const,
+        description: 'Students see activities for their own curriculum.',
+      },
+      {
+        name: 'Take part in activities (portal)',
+        slug: 'portal.activities.participate',
+        action: 'create' as const,
+        description: 'Students post replies and vote in polls.',
+      },
+    ],
+  },
+  {
+    name: 'Attendance',
+    slug: 'attendance',
+    description: 'Class sessions, attendance taking and merged attendance sessions.',
+    permissions: [
+      {
+        name: 'View attendance',
+        slug: 'attendance.read',
+        action: 'read' as const,
+        description: 'See class sessions, attendance and merged session history.',
+      },
+      {
+        name: 'Schedule classes',
+        slug: 'attendance.schedule',
+        action: 'create' as const,
+        description: 'Create, edit and cancel class sessions.',
+      },
+      {
+        name: 'Take attendance',
+        slug: 'attendance.mark',
+        action: 'update' as const,
+        description: 'Mark attendance and merge assigned classes.',
+      },
+      {
+        name: 'Manage attendance',
+        slug: 'attendance.manage',
+        action: 'manage' as const,
+        description: 'Access every class, lock sessions and correct locked attendance.',
+      },
+    ],
+  },
+  {
+    name: 'Primary Classes',
+    slug: 'attendance-primary',
+    description: 'Designating a primary class for overlapping sessions.',
+    permissions: [
+      {
+        name: 'Assign primary classes',
+        slug: 'attendance.primary',
+        action: 'update' as const,
+        description: 'Designate a class as primary for students in its time slot.',
+      },
+    ],
+  },
+  {
+    name: 'Student Attendance',
+    slug: 'portal-attendance',
+    description: 'Students viewing their own attendance.',
+    permissions: [
+      {
+        name: 'View attendance (portal)',
+        slug: 'portal.attendance.read',
+        action: 'read' as const,
+        description: 'Students see their own attendance per class.',
+      },
+    ],
+  },
+  {
     name: 'Curriculum',
     slug: 'curriculum',
     description: 'Semester-wise subject structure for a batch.',

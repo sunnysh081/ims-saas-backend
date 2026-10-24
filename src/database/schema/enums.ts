@@ -101,3 +101,46 @@ export const assignmentSubmissionTypeEnum = pgEnum('assignment_submission_type',
   'PHYSICAL',
   'ONLINE',
 ]);
+
+export const activityTypeEnum = pgEnum('activity_type', [
+  'DISCUSSION',
+  'POLL',
+  'PRACTICAL',
+]);
+
+export const activityStatusEnum = pgEnum('activity_status', ['DRAFT', 'PUBLISHED']);
+
+export const attendanceClassTypeEnum = pgEnum('attendance_class_type', [
+  'REGULAR',
+  'PLACEMENT',
+  'SPORTS',
+  'ARITHMETIC',
+  'SPECIAL',
+  'OTHER',
+]);
+
+export const classSessionStatusEnum = pgEnum('class_session_status', [
+  'SCHEDULED',
+  'COMPLETED',
+  'CANCELLED',
+]);
+
+export const attendanceStatusEnum = pgEnum('attendance_status', [
+  'PRESENT',
+  'ABSENT',
+  'EXCUSED',
+  'LEAVE',
+]);
+
+export const mergedSessionStatusEnum = pgEnum('merged_session_status', [
+  'OPEN',
+  'SUBMITTED',
+  'CANCELLED',
+]);
+
+export const attendanceAuditTriggerEnum = pgEnum('attendance_audit_trigger', [
+  'MANUAL',
+  'PRIMARY_RULE',
+  'CORRECTION',
+  'MERGED_SUBMIT',
+]);
